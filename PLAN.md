@@ -138,7 +138,7 @@ rateLimits:
 
 | Группа бакета            | Лимит Polymarket        | Наши роуты                                   |
 | ------------------------ | ----------------------- | -------------------------------------------- |
-| gamma:events             | 900 req/10s (listing)   | `GET /gamma/events/keyset`, `GET /gamma/events/slug/{slug}` |
+| gamma:events             | 900 req/10s (listing)   | `GET /gamma/events`, `GET /gamma/events/slug/{slug}` |
 | gamma:general            | 4000 req/10s            | `GET /gamma/public-profile`                  |
 | clob:books               | 500 req/10s             | `POST /clob/books`                           |
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
@@ -184,7 +184,7 @@ retries:
 Правило именования: наш путь = `/<api>` + **оригинальный путь Polymarket** (`api` ∈ `gamma|clob|data`). Пути, path- и query-параметры, тела запросов не переименовываем — 1:1 как в доках Polymarket.
 
 ### Gamma (публичные, без Bearer) — префикс `/gamma`
-- `GET /gamma/events/keyset` → `GET gamma /events/keyset` (keyset-пагинация, проброс `next_cursor`)
+- `GET /gamma/events` → `GET gamma /events/keyset` (keyset-пагинация, проброс `next_cursor`)
 - `GET /gamma/events/slug/{slug}` → `GET gamma /events/slug/{slug}`
 - `GET /gamma/public-profile` → `GET gamma /public-profile?address=`
 

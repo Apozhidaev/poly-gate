@@ -62,7 +62,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 
 | Method + path | Upstream | Auth |
 | --- | --- | --- |
-| `GET /gamma/events/keyset` | Gamma `/events/keyset` | – |
+| `GET /gamma/events` | Gamma `/events/keyset` | – |
 | `GET /gamma/events/slug/{slug}` | Gamma `/events/slug/{slug}` | – |
 | `GET /gamma/public-profile` | Gamma `/public-profile` | – |
 | `POST /clob/books` | CLOB `/books` (direct, not SDK) | – |

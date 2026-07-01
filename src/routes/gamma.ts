@@ -96,7 +96,7 @@ const publicProfileQuery = Type.Object(
 
 export function registerGammaRoutes(app: FastifyInstance): void {
   app.get(
-    "/gamma/events/keyset",
+    "/gamma/events",
     {
       schema: {
         tags: ["gamma"],

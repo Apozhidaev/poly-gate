@@ -77,7 +77,7 @@ describe("server", () => {
     );
 
     app = await buildServer(makeConfig(false));
-    const res = await app.inject({ method: "GET", url: "/gamma/events/keyset?limit=5&closed=false" });
+    const res = await app.inject({ method: "GET", url: "/gamma/events?limit=5&closed=false" });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ events: [] });
     expect(seen).toHaveLength(1);
