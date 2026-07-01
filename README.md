@@ -75,7 +75,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /data/closed-positions` | Data `/closed-positions` | – |
 | `GET /data/activity` | Data `/activity` | – |
 | `GET /data/trades` | Data `/trades` | – |
-| `GET /data/accounting/snapshot` | Data `/v1/accounting/snapshot` (ZIP) | – |
+| `GET /data/accounting/snapshot` | Data `/v1/accounting/snapshot` (equity as JSON) | – |
 | `GET /data/leaderboard` | Data `/v1/leaderboard` | – |
 | `GET /data/holders` | Data `/holders` | – |
 
@@ -103,6 +103,19 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 - A token: `GET /clob/token-balance?token_id=...`
 
 Both return `{ "balance": <number> }` in human-readable units (6 decimals).
+
+### Accounting snapshot
+
+`GET /data/accounting/snapshot?user=0x...` downloads the upstream ZIP, extracts `equity.csv` and returns it as a JSON object:
+
+```json
+{
+  "cashBalance": 9742.99879,
+  "positionsValue": 63635.61211,
+  "equity": 73378.6109,
+  "valuationTime": "2026-06-18T02:19:40Z"
+}
+```
 
 ## Testing
 

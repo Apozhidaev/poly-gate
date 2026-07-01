@@ -1,5 +1,7 @@
 import { type TSchema, Type } from "@sinclair/typebox";
+import { strFromU8, unzipSync } from "fflate";
 import type { FastifyInstance } from "fastify";
+import { rawQueryString, sendUpstream } from "../lib/httpProxy.js";
 import type { BucketName } from "../lib/rateLimiter.js";
 import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
@@ -126,6 +128,25 @@ const holdersQuery = Type.Object(
 
 const snapshotQuery = Type.Object({ user: address() }, objOpts);
 
+const snapshotResponse = Type.Object({
+  cashBalance: Type.Number(),
+  positionsValue: Type.Number(),
+  equity: Type.Number(),
+  valuationTime: Type.String(),
+});
+
+// equity.csv always has exactly two lines: header + one values row.
+function parseEquityCsv(text: string) {
+  const lines = text.trim().split(/\r?\n/);
+  const values = lines[1].split(","); // [cashBalance, positionsValue, equity, valuationTime]
+  return {
+    cashBalance: Number(values[0]),
+    positionsValue: Number(values[1]),
+    equity: Number(values[2]),
+    valuationTime: values[3],
+  };
+}
+
 interface DataRoute {
   path: string;
   upstreamPath: string;
@@ -170,14 +191,6 @@ const ROUTES: DataRoute[] = [
     summary: "Get top holders for markets",
     querystring: holdersQuery,
   },
-  {
-    // Accounting snapshot returns a ZIP (application/zip); passthrough handles binary already.
-    path: "/data/accounting/snapshot",
-    upstreamPath: "/v1/accounting/snapshot",
-    bucket: "data:general",
-    summary: "Download an accounting snapshot (ZIP of CSVs)",
-    querystring: snapshotQuery,
-  },
 ];
 
 export function registerDataRoutes(app: FastifyInstance): void {
@@ -201,4 +214,42 @@ export function registerDataRoutes(app: FastifyInstance): void {
         }),
     );
   }
+
+  app.get(
+    "/data/accounting/snapshot",
+    {
+      schema: {
+        tags: ["data"],
+        summary: "Get accounting snapshot equity (parsed from equity.csv)",
+        description:
+          "Downloads the Data API accounting snapshot ZIP, extracts equity.csv and returns it as a JSON object.",
+        querystring: snapshotQuery,
+        response: {
+          200: snapshotResponse,
+          502: Type.Object({ error: Type.String() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const base = app.gate.config.upstreams.data;
+      const url = base + "/v1/accounting/snapshot" + rawQueryString(request);
+      const res = await app.gate.httpProxy.forward({
+        bucket: "data:general",
+        method: "GET",
+        url,
+      });
+      if (res.status !== 200) {
+        sendUpstream(reply, res);
+        return;
+      }
+      try {
+        const files = unzipSync(new Uint8Array(res.body));
+        const equity = files["equity.csv"];
+        if (!equity) throw new Error("equity.csv not found in snapshot");
+        return reply.send(parseEquityCsv(strFromU8(equity)));
+      } catch (err) {
+        return reply.status(502).send({ error: `Failed to read snapshot ZIP: ${String(err)}` });
+      }
+    },
+  );
 }

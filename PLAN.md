@@ -204,7 +204,7 @@ retries:
 - `GET /data/closed-positions` → `GET data /closed-positions`
 - `GET /data/activity` → `GET data /activity`
 - `GET /data/trades` → `GET data /trades`
-- `GET /data/accounting/snapshot` → `GET data /v1/accounting/snapshot` (ZIP passthrough, `application/zip`)
+- `GET /data/accounting/snapshot` → `GET data /v1/accounting/snapshot`; шлюз распаковывает ZIP, парсит `equity.csv` и возвращает JSON-объект `{ cashBalance, positionsValue, equity: number, valuationTime: string }`
 - `GET /data/leaderboard` → `GET data /v1/leaderboard`
 - `GET /data/holders` → `GET data /holders`
 
