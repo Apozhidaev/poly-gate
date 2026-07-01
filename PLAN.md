@@ -140,7 +140,7 @@ rateLimits:
 | ------------------------ | ----------------------- | -------------------------------------------- |
 | gamma:events             | 900 req/10s (listing)   | `GET /gamma/events`, `GET /gamma/events/slug/{slug}` |
 | gamma:general            | 4000 req/10s            | `GET /gamma/public-profile`                  |
-| clob:books               | 500 req/10s             | `POST /clob/books`                           |
+| clob:books               | 500 req/10s             | `POST /clob/order-books`                     |
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
 | clob:order:delete        | 5000/10s, 120k/10min    | `DELETE /clob/order`                         |
 | clob:ledger              | 900 req/10s             | `GET /clob/order/{orderID}`                  |
@@ -160,7 +160,7 @@ rateLimits:
 
 Все исходящие запросы к Polymarket оборачиваем в retry с экспоненциальным backoff + jitter. **Исключение: `POST /clob/order`** — размещение ордера НЕ ретраим (повтор может создать дубликат ордера; клиент сам решает, что делать при ошибке).
 
-- **Ретраим только идемпотентное:** все `GET`, `POST /clob/books` (read-only), `DELETE /clob/order` (отмена идемпотентна).
+- **Ретраим только идемпотентное:** все `GET`, `POST /clob/order-books` (read-only), `DELETE /clob/order` (отмена идемпотентна).
 - **Условия ретрая:** сетевые ошибки (ECONNRESET/таймаут/DNS), `5xx`, а также `429/503` — c учётом `Retry-After`.
 - **НЕ ретраим:** `4xx` (кроме `429`) — это ошибки запроса/валидации, повтор не поможет.
 - **Параметры (по умолчанию, настраиваемо в конфиге):** `retries: 3`, базовая задержка `250ms`, множитель `2`, максимум `~4s`, полный jitter, общий таймаут на попытку.
@@ -189,7 +189,7 @@ retries:
 - `GET /gamma/public-profile` → `GET gamma /public-profile?address=`
 
 ### CLOB market data (публичные, без Bearer) — префикс `/clob`
-- `POST /clob/books` → `POST clob /books` (массив `token_id`) — **напрямую через `httpProxy` (undici/fetch), НЕ через SDK**
+- `POST /clob/order-books` → `POST clob /books` (массив `token_id`) — **напрямую через `httpProxy` (undici/fetch), НЕ через SDK**
 
 ### CLOB торговля (приватные, L2 + подпись, **требуют Bearer**) — префикс `/clob`
 - `POST /clob/order` → `POST clob /order` — тело высокоуровневое (`tokenID, price, size, side, orderType` + **`tickSize` и `negRisk` обязательны от клиента**), сборка+подпись на стороне шлюза. **Без retry** (риск дубликата ордера)
@@ -238,7 +238,7 @@ retries:
 - TypeBox-схемы запрос/ответ → попадают в Swagger. Каждый роут привязан к своему бакету.
 
 ### Этап 4. CLOB market data + приватная торговля
-- `POST /clob/books` — напрямую через `httpProxy` (не SDK).
+- `POST /clob/order-books` — напрямую через `httpProxy` (не SDK).
 - `trade`: create/post order (tickSize/negRisk из тела, подпись на шлюзе, без retry), cancel, get order, get trades (`maker_address` от клиента) — через SDK с L2/подписью.
 - `balance`: `balance-allowance` (COLLATERAL или CONDITIONAL по `token_id`, параметры от клиента).
 
@@ -260,6 +260,6 @@ retries:
 7. **`POST /clob/order` тело** — ✅ решено: высокоуровневое (`tokenID, price, size, side, orderType`), `tickSize` и `negRisk` **обязательны от клиента**, подпись на шлюзе.
 8. **Параметры эндпоинтов** — ✅ решено: все path/query/body параметры ровно как у Polymarket и приходят от клиента; из конфига берётся только информация для авторизации (никакой автоподстановки адресов).
 9. **Bearer только где нужно** — ✅ решено: наш токен требуется лишь на приватных CLOB-эндпоинтах (для выбора кошелька-конфига под L2-подпись); публичные Gamma/Data/CLOB market data — без Bearer.
-10. **CLOB `/books` напрямую** — ✅ решено: публичный `POST /clob/books` идёт через `httpProxy` (undici/fetch), не через SDK. SDK — только приватные CLOB-эндпоинты.
+10. **CLOB `/books` напрямую** — ✅ решено: публичный `POST /clob/order-books` идёт через `httpProxy` (undici/fetch), не через SDK. SDK — только приватные CLOB-эндпоинты.
 11. **Работа без кредов** — ✅ решено: `users` опционален; сервис стартует и обслуживает публичные эндпоинты без `privateKey/creds`. Приватные роуты без настроенного кошелька возвращают ошибку авторизации, но не роняют сервис.
 ```

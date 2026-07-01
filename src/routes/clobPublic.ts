@@ -5,7 +5,7 @@ import { forwardPublic } from "./helpers.js";
 
 export function registerClobPublicRoutes(app: FastifyInstance): void {
   app.post(
-    "/clob/books",
+    "/clob/order-books",
     {
       schema: {
         tags: ["clob"],

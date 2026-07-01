@@ -65,7 +65,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /gamma/events` | Gamma `/events/keyset` | – |
 | `GET /gamma/events/slug/{slug}` | Gamma `/events/slug/{slug}` | – |
 | `GET /gamma/public-profile` | Gamma `/public-profile` | – |
-| `POST /clob/books` | CLOB `/books` (direct, not SDK) | – |
+| `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
