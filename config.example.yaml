@@ -37,7 +37,7 @@ users: []
 #     privateKey: "0x..."
 #     # Polymarket proxy wallet (deposit wallet / funder). NOT derivable from privateKey.
 #     funder: "0x..."
-#     # POLY_1271 deposit-wallet flow.
+#     # Signature type: 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271 (default).
 #     signatureType: 3
 #     # L2 API credentials. Generate with `npm run derive-creds`.
 #     creds:

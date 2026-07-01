@@ -47,7 +47,7 @@ export class ClobClientFactory {
           secret: user.creds.secret,
           passphrase: user.creds.passphrase,
         },
-        signatureType: SignatureTypeV2.POLY_1271,
+        signatureType: user.signatureType as SignatureTypeV2,
         funderAddress: user.funder,
       });
 

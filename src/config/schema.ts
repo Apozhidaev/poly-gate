@@ -14,8 +14,11 @@ export const userSchema = z.object({
   token: z.string().min(8, "gateway token must be at least 8 chars"),
   privateKey: hexString,
   funder: address,
-  // Only POLY_1271 (deposit wallet flow) is supported for now, but keep it explicit.
-  signatureType: z.literal(3).default(3),
+  // Polymarket signature type: 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271.
+  // All three sign with the EOA (privateKey) on behalf of the `funder` wallet.
+  signatureType: z
+    .union([z.literal(1), z.literal(2), z.literal(3)])
+    .default(3),
   creds: credsSchema,
 });
 
