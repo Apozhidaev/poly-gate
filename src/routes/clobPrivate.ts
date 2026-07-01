@@ -231,18 +231,9 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       ...auth,
       schema: {
         tags: ["clob"],
-        summary: "Get USDC balance",
+        summary: "Get USDC (collateral) balance",
+        description: "Returns the wallet's USDC/collateral balance (human-readable units).",
         security: [{ bearerAuth: [] }],
-        querystring: Type.Object({
-          asset_type: StringEnum(["COLLATERAL", "CONDITIONAL"], {
-            default: "COLLATERAL",
-          }),
-          token_id: Type.Optional(
-            Type.String({
-              description: "Required when asset_type=CONDITIONAL",
-            }),
-          ),
-        }),
       },
     },
     async (request, reply) => {
@@ -251,7 +242,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
         app.gate,
         () =>
           client.getBalanceAllowance({
-            asset_type: AssetType.CONDITIONAL,
+            asset_type: AssetType.COLLATERAL,
           }),
         { bucket: "clob:balance" },
       );
@@ -267,42 +258,29 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       ...auth,
       schema: {
         tags: ["clob"],
-        summary: "Get token balance",
+        summary: "Get conditional token balance",
+        description:
+          "Returns the wallet's balance for a specific conditional token (human-readable units).",
         security: [{ bearerAuth: [] }],
         querystring: Type.Object({
-          asset_type: StringEnum(["COLLATERAL", "CONDITIONAL"], {
-            default: "COLLATERAL",
-          }),
-          token_id: Type.Optional(
-            Type.String({
-              description: "Required when asset_type=CONDITIONAL",
-            }),
-          ),
+          token_id: Type.String({ description: "Conditional token id" }),
         }),
       },
     },
     async (request, reply) => {
       const { client } = requireUser(request);
-      const q = request.query as {
-        asset_type: "COLLATERAL" | "CONDITIONAL";
-        token_id?: string;
-      };
-      if (q.asset_type === "CONDITIONAL" && !q.token_id) {
-        return reply
-          .status(400)
-          .send({ error: "token_id is required when asset_type=CONDITIONAL" });
-      }
+      const q = request.query as { token_id: string };
       const result = await scheduleClobCall(
         app.gate,
         () =>
           client.getBalanceAllowance({
-            asset_type: AssetType.COLLATERAL,
+            asset_type: AssetType.CONDITIONAL,
             token_id: q.token_id,
           }),
         { bucket: "clob:balance" },
       );
       return reply.send({
-        value: Number(result.balance) / 10 ** USDC_DIGITS,
+        balance: Number(result.balance) / 10 ** USDC_DIGITS,
       });
     },
   );

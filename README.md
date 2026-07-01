@@ -70,7 +70,8 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
 | `GET /clob/trades` | CLOB `/data/trades` | Bearer |
-| `GET /clob/balance-allowance` | CLOB balance/allowance | Bearer |
+| `GET /clob/usdc-balance` | CLOB USDC/collateral balance | Bearer |
+| `GET /clob/token-balance` | CLOB conditional token balance (`token_id`) | Bearer |
 | `GET /data/closed-positions` | Data `/closed-positions` | – |
 | `GET /data/activity` | Data `/activity` | – |
 | `GET /data/trades` | Data `/trades` | – |
@@ -98,8 +99,10 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 
 ### Balances
 
-- USDC/collateral: `GET /clob/balance-allowance?asset_type=COLLATERAL`
-- A token: `GET /clob/balance-allowance?asset_type=CONDITIONAL&token_id=...`
+- USDC/collateral: `GET /clob/usdc-balance`
+- A token: `GET /clob/token-balance?token_id=...`
+
+Both return `{ "balance": <number> }` in human-readable units (6 decimals).
 
 ## Testing
 

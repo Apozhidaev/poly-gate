@@ -145,7 +145,7 @@ rateLimits:
 | clob:order:delete        | 5000/10s, 120k/10min    | `DELETE /clob/order`                         |
 | clob:ledger              | 900 req/10s             | `GET /clob/order/{orderID}`                  |
 | clob:data:trades         | 500 req/10s             | `GET /clob/trades`                           |
-| clob:balance             | 200 req/10s             | `GET /clob/balance-allowance`                |
+| clob:balance             | 200 req/10s             | `GET /clob/usdc-balance`, `GET /clob/token-balance` |
 | data:trades              | 200 req/10s             | `GET /data/trades`                           |
 | data:positions           | 150 req/10s             | `GET /data/closed-positions`                 |
 | data:general             | 1000 req/10s            | `GET /data/activity`, `GET /data/leaderboard`, `GET /data/holders`, `GET /data/accounting/snapshot` |
@@ -196,7 +196,8 @@ retries:
 - `DELETE /clob/order` → `DELETE clob /order` (тело `{ orderID }`)
 - `GET /clob/order/{orderID}` → `GET clob /data/order/{orderID}`
 - `GET /clob/trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)
-- `GET /clob/balance-allowance` → CLOB balance/allowance: **USDC/collateral** (`asset_type=COLLATERAL`) или **конкретный токен** (`asset_type=CONDITIONAL` + `token_id`). Все параметры — от клиента; из конфига только авторизация (`signatureType`/`funder`/`creds`). Массового «все токены» нет.
+- `GET /clob/usdc-balance` → CLOB balance/allowance для **USDC/collateral** (`asset_type=COLLATERAL`), без параметров.
+- `GET /clob/token-balance?token_id=...` → CLOB balance/allowance для **конкретного токена** (`asset_type=CONDITIONAL` + `token_id`). Из конфига только авторизация (`signatureType`/`funder`/`creds`). Массового «все токены» нет.
 
 ### Data API (публичные, без Bearer) — префикс `/data`
 Все параметры (`user`, `market`, `address` и т.д.) — ровно как у Polymarket, от клиента.
