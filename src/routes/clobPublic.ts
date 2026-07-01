@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
+import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
 
 export function registerClobPublicRoutes(app: FastifyInstance): void {
@@ -15,7 +16,7 @@ export function registerClobPublicRoutes(app: FastifyInstance): void {
           Type.Object(
             {
               token_id: Type.String(),
-              side: Type.Optional(Type.Union([Type.Literal("BUY"), Type.Literal("SELL")])),
+              side: Type.Optional(StringEnum(["BUY", "SELL"])),
             },
             { additionalProperties: true },
           ),

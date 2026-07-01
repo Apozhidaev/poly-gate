@@ -8,19 +8,15 @@ import {
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
+import { StringEnum } from "../lib/typebox.js";
 
 const TICK_SIZES = ["0.1", "0.01", "0.001", "0.0001"] as const;
 
 const orderBodySchema = Type.Object({
   tokenID: Type.String({ description: "Conditional token id" }),
-  side: Type.Union([Type.Literal("BUY"), Type.Literal("SELL")]),
-  orderType: Type.Optional(
-    Type.Union(
-      [Type.Literal("GTC"), Type.Literal("GTD"), Type.Literal("FOK"), Type.Literal("FAK")],
-      { default: "GTC" },
-    ),
-  ),
-  tickSize: Type.Union(TICK_SIZES.map((t) => Type.Literal(t))),
+  side: StringEnum(["BUY", "SELL"]),
+  orderType: Type.Optional(StringEnum(["GTC", "GTD", "FOK", "FAK"], { default: "GTC" })),
+  tickSize: StringEnum(TICK_SIZES),
   negRisk: Type.Boolean(),
   price: Type.Optional(Type.Number({ description: "Required for GTC/GTD; optional for FOK/FAK" })),
   size: Type.Optional(Type.Number({ description: "Required for GTC/GTD (in shares)" })),
@@ -205,9 +201,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
         summary: "Get balance & allowance (USDC/collateral or a token)",
         security: [{ bearerAuth: [] }],
         querystring: Type.Object({
-          asset_type: Type.Union([Type.Literal("COLLATERAL"), Type.Literal("CONDITIONAL")], {
-            default: "COLLATERAL",
-          }),
+          asset_type: StringEnum(["COLLATERAL", "CONDITIONAL"], { default: "COLLATERAL" }),
           token_id: Type.Optional(Type.String({ description: "Required when asset_type=CONDITIONAL" })),
         }),
       },
