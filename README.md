@@ -74,8 +74,8 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /data/closed-positions` | Data `/closed-positions` | – |
 | `GET /data/activity` | Data `/activity` | – |
 | `GET /data/trades` | Data `/trades` | – |
-| `GET /data/v1/accounting/snapshot` | Data `/v1/accounting/snapshot` (ZIP) | – |
-| `GET /data/v1/leaderboard` | Data `/v1/leaderboard` | – |
+| `GET /data/accounting/snapshot` | Data `/v1/accounting/snapshot` (ZIP) | – |
+| `GET /data/leaderboard` | Data `/v1/leaderboard` | – |
 | `GET /data/holders` | Data `/holders` | – |
 
 ### Placing an order

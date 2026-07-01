@@ -157,7 +157,7 @@ const ROUTES: DataRoute[] = [
     querystring: tradesQuery,
   },
   {
-    path: "/data/v1/leaderboard",
+    path: "/data/leaderboard",
     upstreamPath: "/v1/leaderboard",
     bucket: "data:general",
     summary: "Get trader leaderboard rankings",
@@ -172,7 +172,7 @@ const ROUTES: DataRoute[] = [
   },
   {
     // Accounting snapshot returns a ZIP (application/zip); passthrough handles binary already.
-    path: "/data/v1/accounting/snapshot",
+    path: "/data/accounting/snapshot",
     upstreamPath: "/v1/accounting/snapshot",
     bucket: "data:general",
     summary: "Download an accounting snapshot (ZIP of CSVs)",

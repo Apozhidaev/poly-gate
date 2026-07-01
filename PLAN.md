@@ -148,7 +148,7 @@ rateLimits:
 | clob:balance             | 200 req/10s             | `GET /clob/balance-allowance`                |
 | data:trades              | 200 req/10s             | `GET /data/trades`                           |
 | data:positions           | 150 req/10s             | `GET /data/closed-positions`                 |
-| data:general             | 1000 req/10s            | `GET /data/activity`, `GET /data/v1/leaderboard`, `GET /data/holders`, `GET /data/v1/accounting/snapshot` |
+| data:general             | 1000 req/10s            | `GET /data/activity`, `GET /data/leaderboard`, `GET /data/holders`, `GET /data/accounting/snapshot` |
 
 - Реализуем burst + sustained (Bottleneck `reservoir` + refresh) для торговых бакетов.
 - При достижении лимита — очередь (как у Cloudflare), с таймаутом и ответом `429`/`503 Retry-After` при переполнении.
@@ -203,8 +203,8 @@ retries:
 - `GET /data/closed-positions` → `GET data /closed-positions`
 - `GET /data/activity` → `GET data /activity`
 - `GET /data/trades` → `GET data /trades`
-- `GET /data/v1/accounting/snapshot` → `GET data /v1/accounting/snapshot` (ZIP passthrough, `application/zip`)
-- `GET /data/v1/leaderboard` → `GET data /v1/leaderboard`
+- `GET /data/accounting/snapshot` → `GET data /v1/accounting/snapshot` (ZIP passthrough, `application/zip`)
+- `GET /data/leaderboard` → `GET data /v1/leaderboard`
 - `GET /data/holders` → `GET data /holders`
 
 ### Служебные
