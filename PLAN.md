@@ -143,8 +143,8 @@ rateLimits:
 | clob:books               | 500 req/10s             | `POST /clob/books`                           |
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
 | clob:order:delete        | 5000/10s, 120k/10min    | `DELETE /clob/order`                         |
-| clob:ledger              | 900 req/10s             | `GET /clob/data/order/{orderID}`             |
-| clob:data:trades         | 500 req/10s             | `GET /clob/data/trades`                      |
+| clob:ledger              | 900 req/10s             | `GET /clob/order/{orderID}`                  |
+| clob:data:trades         | 500 req/10s             | `GET /clob/trades`                           |
 | clob:balance             | 200 req/10s             | `GET /clob/balance-allowance`                |
 | data:trades              | 200 req/10s             | `GET /data/trades`                           |
 | data:positions           | 150 req/10s             | `GET /data/closed-positions`                 |
@@ -194,8 +194,8 @@ retries:
 ### CLOB торговля (приватные, L2 + подпись, **требуют Bearer**) — префикс `/clob`
 - `POST /clob/order` → `POST clob /order` — тело высокоуровневое (`tokenID, price, size, side, orderType` + **`tickSize` и `negRisk` обязательны от клиента**), сборка+подпись на стороне шлюза. **Без retry** (риск дубликата ордера)
 - `DELETE /clob/order` → `DELETE clob /order` (тело `{ orderID }`)
-- `GET /clob/data/order/{orderID}` → `GET clob /data/order/{orderID}`
-- `GET /clob/data/trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)
+- `GET /clob/order/{orderID}` → `GET clob /data/order/{orderID}`
+- `GET /clob/trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)
 - `GET /clob/balance-allowance` → CLOB balance/allowance: **USDC/collateral** (`asset_type=COLLATERAL`) или **конкретный токен** (`asset_type=CONDITIONAL` + `token_id`). Все параметры — от клиента; из конфига только авторизация (`signatureType`/`funder`/`creds`). Массового «все токены» нет.
 
 ### Data API (публичные, без Bearer) — префикс `/data`

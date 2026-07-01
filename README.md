@@ -68,8 +68,8 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `POST /clob/books` | CLOB `/books` (direct, not SDK) | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
-| `GET /clob/data/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
-| `GET /clob/data/trades` | CLOB `/data/trades` | Bearer |
+| `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
+| `GET /clob/trades` | CLOB `/data/trades` | Bearer |
 | `GET /clob/balance-allowance` | CLOB balance/allowance | Bearer |
 | `GET /data/closed-positions` | Data `/closed-positions` | – |
 | `GET /data/activity` | Data `/activity` | – |

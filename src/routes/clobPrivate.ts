@@ -130,7 +130,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
   );
 
   app.get(
-    "/clob/data/order/:orderID",
+    "/clob/order/:orderID",
     {
       ...auth,
       schema: {
@@ -151,7 +151,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
   );
 
   app.get(
-    "/clob/data/trades",
+    "/clob/trades",
     {
       ...auth,
       schema: {

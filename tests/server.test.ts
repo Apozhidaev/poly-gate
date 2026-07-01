@@ -43,13 +43,13 @@ describe("server", () => {
 
   it("returns 503 on private route when no users configured", async () => {
     app = await buildServer(makeConfig(false));
-    const res = await app.inject({ method: "GET", url: "/clob/data/order/abc" });
+    const res = await app.inject({ method: "GET", url: "/clob/order/abc" });
     expect(res.statusCode).toBe(503);
   });
 
   it("requires a bearer token on private routes", async () => {
     app = await buildServer(makeConfig(true));
-    const res = await app.inject({ method: "GET", url: "/clob/data/order/abc" });
+    const res = await app.inject({ method: "GET", url: "/clob/order/abc" });
     expect(res.statusCode).toBe(401);
   });
 
@@ -57,7 +57,7 @@ describe("server", () => {
     app = await buildServer(makeConfig(true));
     const res = await app.inject({
       method: "GET",
-      url: "/clob/data/order/abc",
+      url: "/clob/order/abc",
       headers: { authorization: "Bearer wrong" },
     });
     expect(res.statusCode).toBe(401);
