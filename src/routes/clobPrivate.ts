@@ -11,19 +11,30 @@ import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
 import { StringEnum } from "../lib/typebox.js";
 
 const TICK_SIZES = ["0.1", "0.01", "0.001", "0.0001"] as const;
+const USDC_DIGITS = 6;
 
 const orderBodySchema = Type.Object({
   tokenID: Type.String({ description: "Conditional token id" }),
   side: StringEnum(["BUY", "SELL"]),
-  orderType: Type.Optional(StringEnum(["GTC", "GTD", "FOK", "FAK"], { default: "GTC" })),
+  orderType: Type.Optional(
+    StringEnum(["GTC", "GTD", "FOK", "FAK"], { default: "GTC" }),
+  ),
   tickSize: StringEnum(TICK_SIZES),
   negRisk: Type.Boolean(),
-  price: Type.Optional(Type.Number({ description: "Required for GTC/GTD; optional for FOK/FAK" })),
-  size: Type.Optional(Type.Number({ description: "Required for GTC/GTD (in shares)" })),
-  amount: Type.Optional(
-    Type.Number({ description: "Required for FOK/FAK (BUY: USDC amount, SELL: shares)" }),
+  price: Type.Optional(
+    Type.Number({ description: "Required for GTC/GTD; optional for FOK/FAK" }),
   ),
-  expiration: Type.Optional(Type.Number({ description: "Unix seconds, for GTD" })),
+  size: Type.Optional(
+    Type.Number({ description: "Required for GTC/GTD (in shares)" }),
+  ),
+  amount: Type.Optional(
+    Type.Number({
+      description: "Required for FOK/FAK (BUY: USDC amount, SELL: shares)",
+    }),
+  ),
+  expiration: Type.Optional(
+    Type.Number({ description: "Unix seconds, for GTD" }),
+  ),
 });
 
 interface OrderBody {
@@ -67,27 +78,41 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const body = request.body as OrderBody;
       const side = body.side === "BUY" ? Side.BUY : Side.SELL;
       const orderType = (body.orderType ?? "GTC") as OrderType;
-      const options = { tickSize: body.tickSize as TickSize, negRisk: body.negRisk };
+      const options = {
+        tickSize: body.tickSize as TickSize,
+        negRisk: body.negRisk,
+      };
 
       const result = await scheduleClobCall(
         app.gate,
         async () => {
           if (orderType === OrderType.FOK || orderType === OrderType.FAK) {
             if (body.amount == null) {
-              throw Object.assign(new Error("`amount` is required for FOK/FAK orders"), {
-                statusCode: 400,
-              });
+              throw Object.assign(
+                new Error("`amount` is required for FOK/FAK orders"),
+                {
+                  statusCode: 400,
+                },
+              );
             }
             return client.createAndPostMarketOrder(
-              { tokenID: body.tokenID, price: body.price, amount: body.amount, side },
+              {
+                tokenID: body.tokenID,
+                price: body.price,
+                amount: body.amount,
+                side,
+              },
               options,
               orderType,
             );
           }
           if (body.price == null || body.size == null) {
-            throw Object.assign(new Error("`price` and `size` are required for GTC/GTD orders"), {
-              statusCode: 400,
-            });
+            throw Object.assign(
+              new Error("`price` and `size` are required for GTC/GTD orders"),
+              {
+                statusCode: 400,
+              },
+            );
           }
           return client.createAndPostOrder(
             {
@@ -122,9 +147,13 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const { client } = requireUser(request);
       const { orderID } = request.body as { orderID: string };
-      const result = await scheduleClobCall(app.gate, () => client.cancelOrder({ orderID }), {
-        bucket: "clob:order:delete",
-      });
+      const result = await scheduleClobCall(
+        app.gate,
+        () => client.cancelOrder({ orderID }),
+        {
+          bucket: "clob:order:delete",
+        },
+      );
       return reply.send(result);
     },
   );
@@ -143,9 +172,13 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const { client } = requireUser(request);
       const { orderID } = request.params as { orderID: string };
-      const result = await scheduleClobCall(app.gate, () => client.getOrder(orderID), {
-        bucket: "clob:ledger",
-      });
+      const result = await scheduleClobCall(
+        app.gate,
+        () => client.getOrder(orderID),
+        {
+          bucket: "clob:ledger",
+        },
+      );
       return reply.send(result);
     },
   );
@@ -193,33 +226,84 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
   );
 
   app.get(
-    "/clob/balance-allowance",
+    "/clob/usdc-balance",
     {
       ...auth,
       schema: {
         tags: ["clob"],
-        summary: "Get balance & allowance (USDC/collateral or a token)",
+        summary: "Get USDC balance",
         security: [{ bearerAuth: [] }],
         querystring: Type.Object({
-          asset_type: StringEnum(["COLLATERAL", "CONDITIONAL"], { default: "COLLATERAL" }),
-          token_id: Type.Optional(Type.String({ description: "Required when asset_type=CONDITIONAL" })),
+          asset_type: StringEnum(["COLLATERAL", "CONDITIONAL"], {
+            default: "COLLATERAL",
+          }),
+          token_id: Type.Optional(
+            Type.String({
+              description: "Required when asset_type=CONDITIONAL",
+            }),
+          ),
         }),
       },
     },
     async (request, reply) => {
       const { client } = requireUser(request);
-      const q = request.query as { asset_type: "COLLATERAL" | "CONDITIONAL"; token_id?: string };
-      if (q.asset_type === "CONDITIONAL" && !q.token_id) {
-        return reply.status(400).send({ error: "token_id is required when asset_type=CONDITIONAL" });
-      }
-      const assetType =
-        q.asset_type === "CONDITIONAL" ? AssetType.CONDITIONAL : AssetType.COLLATERAL;
       const result = await scheduleClobCall(
         app.gate,
-        () => client.getBalanceAllowance({ asset_type: assetType, token_id: q.token_id }),
+        () =>
+          client.getBalanceAllowance({
+            asset_type: AssetType.CONDITIONAL,
+          }),
         { bucket: "clob:balance" },
       );
-      return reply.send(result);
+      return reply.send({
+        balance: Number(result.balance) / 10 ** USDC_DIGITS,
+      });
+    },
+  );
+
+  app.get(
+    "/clob/token-balance",
+    {
+      ...auth,
+      schema: {
+        tags: ["clob"],
+        summary: "Get token balance",
+        security: [{ bearerAuth: [] }],
+        querystring: Type.Object({
+          asset_type: StringEnum(["COLLATERAL", "CONDITIONAL"], {
+            default: "COLLATERAL",
+          }),
+          token_id: Type.Optional(
+            Type.String({
+              description: "Required when asset_type=CONDITIONAL",
+            }),
+          ),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const { client } = requireUser(request);
+      const q = request.query as {
+        asset_type: "COLLATERAL" | "CONDITIONAL";
+        token_id?: string;
+      };
+      if (q.asset_type === "CONDITIONAL" && !q.token_id) {
+        return reply
+          .status(400)
+          .send({ error: "token_id is required when asset_type=CONDITIONAL" });
+      }
+      const result = await scheduleClobCall(
+        app.gate,
+        () =>
+          client.getBalanceAllowance({
+            asset_type: AssetType.COLLATERAL,
+            token_id: q.token_id,
+          }),
+        { bucket: "clob:balance" },
+      );
+      return reply.send({
+        value: Number(result.balance) / 10 ** USDC_DIGITS,
+      });
     },
   );
 }
