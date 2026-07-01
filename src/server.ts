@@ -1,0 +1,40 @@
+import { type TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import Fastify, { type FastifyInstance } from "fastify";
+import type { AppConfig } from "./config/schema.js";
+import { buildContext } from "./context.js";
+import { registerAuth } from "./plugins/auth.js";
+import { registerErrorHandler } from "./plugins/errorHandler.js";
+import { registerSwagger } from "./plugins/swagger.js";
+import { registerClobPrivateRoutes } from "./routes/clobPrivate.js";
+import { registerClobPublicRoutes } from "./routes/clobPublic.js";
+import { registerDataRoutes } from "./routes/data.js";
+import { registerGammaRoutes } from "./routes/gamma.js";
+import { registerHealthRoutes } from "./routes/health.js";
+
+export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: { level: config.logLevel },
+    // Accept binary passthrough bodies without choking.
+    bodyLimit: 5 * 1024 * 1024,
+  }).withTypeProvider<TypeBoxTypeProvider>();
+
+  // Shared services.
+  app.decorate("gate", buildContext(config, app.log));
+
+  registerErrorHandler(app);
+  registerAuth(app);
+  await registerSwagger(app);
+
+  // Routes.
+  registerHealthRoutes(app);
+  registerGammaRoutes(app);
+  registerDataRoutes(app);
+  registerClobPublicRoutes(app);
+  registerClobPrivateRoutes(app);
+
+  app.addHook("onClose", async (instance) => {
+    await instance.gate.limiter.disconnectAll();
+  });
+
+  return app;
+}

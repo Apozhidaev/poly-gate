@@ -1,0 +1,46 @@
+# Poly-Gate configuration example.
+# Copy to config.yaml (or point POLY_GATE_CONFIG at this file) and fill in values.
+
+server:
+  host: 0.0.0.0
+  port: 8080
+
+upstreams:
+  gamma: https://gamma-api.polymarket.com
+  data: https://data-api.polymarket.com
+  clob: https://clob.polymarket.com
+  chainId: 137
+
+# Outbound rate limiting to Polymarket (recommended: keep enabled).
+rateLimits:
+  enabled: true
+
+# Retries for idempotent outbound calls (POST /clob/order is never retried).
+retries:
+  enabled: true
+  attempts: 3
+  baseDelayMs: 250
+  maxDelayMs: 4000
+  factor: 2
+
+logLevel: info
+
+# users is OPTIONAL. With no users the service still serves all public endpoints
+# (Gamma, Data, CLOB market data). Only private CLOB endpoints require a user.
+users: []
+# users:
+#   - id: main
+#     # Gateway token: sent by clients as `Authorization: Bearer <token>`.
+#     # Uniquely identifies + selects this wallet. Use a strong random value.
+#     token: "REPLACE_WITH_STRONG_TOKEN"
+#     # Private key of the signer (EOA). The signer address is derived from it.
+#     privateKey: "0x..."
+#     # Polymarket proxy wallet (deposit wallet / funder). NOT derivable from privateKey.
+#     funder: "0x..."
+#     # POLY_1271 deposit-wallet flow.
+#     signatureType: 3
+#     # L2 API credentials. Generate with `npm run derive-creds`.
+#     creds:
+#       apiKey: "..."
+#       secret: "..."
+#       passphrase: "..."
