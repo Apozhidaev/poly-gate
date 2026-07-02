@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "derive-creds": "tsx scripts/derive-creds.ts",
     "test": "vitest run",
     "test:watch": "vitest",
