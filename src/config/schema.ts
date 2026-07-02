@@ -54,21 +54,35 @@ export const configSchema = z.object({
   retries: z
     .object({
       enabled: z.boolean().default(true),
-      attempts: z.number().int().min(0).default(6),
+      // Safety cap on the number of retries; the real limiter is maxElapsedMs.
+      attempts: z.number().int().min(0).default(30),
       baseDelayMs: z.number().int().min(0).default(250),
-      maxDelayMs: z.number().int().min(0).default(15000),
+      maxDelayMs: z.number().int().min(0).default(30000),
       factor: z.number().min(1).default(2),
+      // Overall time budget across all retries (ms); 0 disables (use attempts only).
+      // Encodes "keep trying for up to N minutes"; a retry is skipped once the
+      // elapsed time plus the next backoff delay would exceed this budget.
+      maxElapsedMs: z.number().int().min(0).default(1_800_000),
     })
-    .default({ enabled: true, attempts: 6, baseDelayMs: 250, maxDelayMs: 15000, factor: 2 }),
+    .default({
+      enabled: true,
+      attempts: 30,
+      baseDelayMs: 250,
+      maxDelayMs: 30000,
+      factor: 2,
+      maxElapsedMs: 1_800_000,
+    }),
   // Outbound HTTP settings for requests the gateway makes to Polymarket.
   http: z
     .object({
       // Per-attempt timeout for outbound fetch calls (ms). 0 disables it.
       // A hung upstream connection never returns data, so timing out lets the
       // request become retryable instead of hanging on a dead socket.
-      timeoutMs: z.number().int().min(0).default(30000),
+      // Keep it above the slowest legitimate query: some historical Polymarket
+      // endpoints can take ~1 minute, so the default leaves headroom.
+      timeoutMs: z.number().int().min(0).default(120000),
     })
-    .default({ timeoutMs: 30000 }),
+    .default({ timeoutMs: 120000 }),
   logLevel: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

@@ -48,6 +48,8 @@ export interface WithRetryOptions {
 export async function withRetry<T>(fn: () => Promise<T>, opts: WithRetryOptions): Promise<T> {
   const { cfg, disabled, onRetry } = opts;
   const maxAttempts = disabled || !cfg.enabled ? 0 : cfg.attempts;
+  const budgetMs = cfg.maxElapsedMs ?? 0;
+  const startedAt = Date.now();
 
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxAttempts; attempt++) {
@@ -58,6 +60,8 @@ export async function withRetry<T>(fn: () => Promise<T>, opts: WithRetryOptions)
       if (attempt >= maxAttempts || !isRetryable(err)) throw err;
       const retryAfter = err instanceof UpstreamError ? err.retryAfterSeconds : undefined;
       const delayMs = backoffDelay(attempt, cfg, retryAfter);
+      // Stop if waiting for the next attempt would blow the overall time budget.
+      if (budgetMs > 0 && Date.now() - startedAt + delayMs >= budgetMs) throw err;
       onRetry?.({ attempt: attempt + 1, delayMs, error: err });
       await sleep(delayMs);
     }

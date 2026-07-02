@@ -19,16 +19,18 @@ rateLimits:
 # Retries for idempotent outbound calls (POST /clob/order is never retried).
 retries:
   enabled: true
-  attempts: 6
+  attempts: 30           # safety cap; the real limiter is maxElapsedMs
   baseDelayMs: 250
-  maxDelayMs: 15000
+  maxDelayMs: 30000
   factor: 2
+  maxElapsedMs: 1800000  # overall retry budget (30 min); 0 disables (use attempts only)
 
 # Outbound HTTP settings for requests to Polymarket.
 http:
   # Per-attempt timeout for outbound requests (ms); 0 disables.
   # Turns a hung upstream connection into a retryable failure.
-  timeoutMs: 30000
+  # Keep above the slowest legitimate query (some historical endpoints ~1 min).
+  timeoutMs: 120000
 
 logLevel: info
 

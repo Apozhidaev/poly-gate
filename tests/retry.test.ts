@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { UpstreamError } from "../src/lib/errors.js";
 import { withRetry } from "../src/lib/retry.js";
 
-const cfg = { enabled: true, attempts: 3, baseDelayMs: 1, maxDelayMs: 5, factor: 2 };
+const cfg = { enabled: true, attempts: 3, baseDelayMs: 1, maxDelayMs: 5, factor: 2, maxElapsedMs: 0 };
 
 describe("withRetry", () => {
   it("retries retryable UpstreamError then succeeds", async () => {
@@ -45,5 +45,25 @@ describe("withRetry", () => {
     });
     await expect(withRetry(fn, { cfg })).rejects.toThrow("boom");
     expect(calls).toBe(cfg.attempts + 1);
+  });
+
+  it("stops retrying once the time budget is exhausted", async () => {
+    // High attempts cap, but a tiny elapsed budget should stop us far sooner.
+    const budgetCfg = {
+      enabled: true,
+      attempts: 1000,
+      baseDelayMs: 10,
+      maxDelayMs: 10,
+      factor: 1,
+      maxElapsedMs: 50,
+    };
+    let calls = 0;
+    const fn = vi.fn(async () => {
+      calls++;
+      throw new UpstreamError("boom", { status: 503 });
+    });
+    await expect(withRetry(fn, { cfg: budgetCfg })).rejects.toThrow("boom");
+    expect(calls).toBeGreaterThan(0);
+    expect(calls).toBeLessThan(budgetCfg.attempts);
   });
 });
