@@ -111,6 +111,7 @@ upstreams:
   gamma: https://gamma-api.polymarket.com
   data:  https://data-api.polymarket.com
   clob:  https://clob.polymarket.com
+  pnl:   https://user-pnl-api.polymarket.com
   chainId: 137
 # users опционален: можно оставить пустым/убрать — тогда доступны только публичные эндпоинты
 users:
@@ -149,6 +150,7 @@ rateLimits:
 | data:trades              | 200 req/10s             | `GET /data/trades`                           |
 | data:positions           | 150 req/10s             | `GET /data/closed-positions`                 |
 | data:general             | 1000 req/10s            | `GET /data/activity`, `GET /data/leaderboard`, `GET /data/holders`, `GET /data/accounting/snapshot` |
+| pnl:general              | 100 req/10s (запас)     | `GET /pnl/user-pnl`                          |
 
 - Реализуем burst + sustained (Bottleneck `reservoir` + refresh) для торговых бакетов.
 - При достижении лимита — очередь (как у Cloudflare), с таймаутом и ответом `429`/`503 Retry-After` при переполнении.
@@ -209,6 +211,9 @@ retries:
 - `GET /data/accounting/snapshot` → `GET data /v1/accounting/snapshot`; шлюз распаковывает ZIP, парсит `equity.csv` и возвращает JSON-объект `{ cashBalance, positionsValue, equity: number, valuationTime: string }`
 - `GET /data/leaderboard` → `GET data /v1/leaderboard`
 - `GET /data/holders` → `GET data /holders`
+
+### User PnL API (публичные, без Bearer) — префикс `/pnl`
+- `GET /pnl/user-pnl` → `GET pnl /user-pnl` (недокументированный; параметры `user_address`, `interval`, `fidelity` — от клиента)
 
 ### Служебные
 - `GET /health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)

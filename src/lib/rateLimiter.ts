@@ -16,7 +16,8 @@ export type BucketName =
   | "clob:balance"
   | "data:trades"
   | "data:positions"
-  | "data:general";
+  | "data:general"
+  | "pnl:general";
 
 const TEN_SECONDS = 10_000;
 const TEN_MINUTES = 600_000;
@@ -65,6 +66,7 @@ export class RateLimiterRegistry {
       "data:trades": window10s(200),
       "data:positions": window10s(150),
       "data:general": window10s(1000),
+      "pnl:general": window10s(100),
     };
   }
 

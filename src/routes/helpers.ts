@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { rawQueryString, sendUpstream } from "../lib/httpProxy.js";
 import type { BucketName } from "../lib/rateLimiter.js";
 
-export type Api = "gamma" | "data" | "clob";
+export type Api = "gamma" | "data" | "clob" | "pnl";
 
 export interface ForwardPublicOptions {
   api: Api;

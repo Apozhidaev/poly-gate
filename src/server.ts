@@ -10,6 +10,7 @@ import { registerClobPublicRoutes } from "./routes/clobPublic.js";
 import { registerDataRoutes } from "./routes/data.js";
 import { registerGammaRoutes } from "./routes/gamma.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { registerPnlRoutes } from "./routes/pnl.js";
 
 export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
@@ -31,6 +32,7 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   registerDataRoutes(app);
   registerClobPublicRoutes(app);
   registerClobPrivateRoutes(app);
+  registerPnlRoutes(app);
 
   app.addHook("onClose", async (instance) => {
     await instance.gate.limiter.disconnectAll();

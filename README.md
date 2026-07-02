@@ -80,6 +80,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /data/accounting/snapshot` | Data `/v1/accounting/snapshot` (equity as JSON) | – |
 | `GET /data/leaderboard` | Data `/v1/leaderboard` | – |
 | `GET /data/holders` | Data `/holders` | – |
+| `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
 
 ### Placing an order
 

@@ -9,6 +9,7 @@ upstreams:
   gamma: https://gamma-api.polymarket.com
   data: https://data-api.polymarket.com
   clob: https://clob.polymarket.com
+  pnl: https://user-pnl-api.polymarket.com
   chainId: 137
 
 # Outbound rate limiting to Polymarket (recommended: keep enabled).
