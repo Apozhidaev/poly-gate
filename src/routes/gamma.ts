@@ -132,6 +132,13 @@ const eventBySlugQuery = Type.Object(
   objOpts,
 );
 
+const marketBySlugQuery = Type.Object(
+  {
+    include_tag: Type.Optional(Type.Boolean()),
+  },
+  objOpts,
+);
+
 const publicProfileQuery = Type.Object(
   {
     address: Type.String({
@@ -197,6 +204,28 @@ export function registerGammaRoutes(app: FastifyInstance): void {
       return forwardPublic(app, request, reply, {
         api: "gamma",
         upstreamPath: `/events/slug/${encodeURIComponent(slug)}`,
+        bucket: "gamma:events",
+        method: "GET",
+      });
+    },
+  );
+
+  app.get(
+    "/gamma/markets/slug/:slug",
+    {
+      schema: {
+        tags: ["gamma"],
+        summary: "Get market by slug",
+        description: "Proxy of Gamma GET /markets/slug/{slug}.",
+        params: Type.Object({ slug: Type.String() }),
+        querystring: marketBySlugQuery,
+      },
+    },
+    (request, reply) => {
+      const { slug } = request.params as { slug: string };
+      return forwardPublic(app, request, reply, {
+        api: "gamma",
+        upstreamPath: `/markets/slug/${encodeURIComponent(slug)}`,
         bucket: "gamma:events",
         method: "GET",
       });

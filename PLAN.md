@@ -138,7 +138,7 @@ rateLimits:
 
 | Группа бакета            | Лимит Polymarket        | Наши роуты                                   |
 | ------------------------ | ----------------------- | -------------------------------------------- |
-| gamma:events             | 900 req/10s (listing)   | `GET /gamma/events`, `GET /gamma/markets`, `GET /gamma/events/slug/{slug}` |
+| gamma:events             | 900 req/10s (listing)   | `GET /gamma/events`, `GET /gamma/markets`, `GET /gamma/events/slug/{slug}`, `GET /gamma/markets/slug/{slug}` |
 | gamma:general            | 4000 req/10s            | `GET /gamma/public-profile`                  |
 | clob:books               | 500 req/10s             | `POST /clob/order-books`                     |
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
@@ -187,6 +187,7 @@ retries:
 - `GET /gamma/events` → `GET gamma /events/keyset` (keyset-пагинация, проброс `next_cursor`)
 - `GET /gamma/markets` → `GET gamma /markets/keyset` (keyset-пагинация, проброс `next_cursor`)
 - `GET /gamma/events/slug/{slug}` → `GET gamma /events/slug/{slug}`
+- `GET /gamma/markets/slug/{slug}` → `GET gamma /markets/slug/{slug}`
 - `GET /gamma/public-profile` → `GET gamma /public-profile?address=`
 
 ### CLOB market data (публичные, без Bearer) — префикс `/clob`
