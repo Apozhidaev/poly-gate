@@ -33,5 +33,8 @@ export function scheduleClobCall<T>(
   const run = () =>
     ctx.limiter.schedule(opts.bucket, async () => unwrapClobResult(await fn()));
 
-  return withRetry(run, { cfg: ctx.config.retries, disabled: opts.retryDisabled });
+  return withRetry(run, {
+    cfg: ctx.profile.resolve("clob").retries,
+    disabled: opts.retryDisabled,
+  });
 }

@@ -22,6 +22,21 @@ describe("loadConfig", () => {
     expect(config.retries.maxElapsedMs).toBe(1_800_000);
   });
 
+  it("parses per-API retry profiles", () => {
+    const path = writeConfig(
+      [
+        "profiles:",
+        "  clob:",
+        "    retries:",
+        "      maxElapsedMs: 60000",
+        "      attempts: 10",
+      ].join("\n"),
+    );
+    const config = loadConfig(path);
+    expect(config.profiles.clob?.retries?.maxElapsedMs).toBe(60_000);
+    expect(config.profiles.clob?.retries?.attempts).toBe(10);
+  });
+
   it("parses a valid user", () => {
     const path = writeConfig(
       [

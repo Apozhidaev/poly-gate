@@ -15,7 +15,7 @@ It also handles **L2 authentication (POLY_1271, `signatureType: 3`)** on your be
 - Bearer auth **only** on private CLOB endpoints (the token also selects the wallet).
 - Boots and serves **all public endpoints even with zero wallets configured**.
 - Outbound rate limiting (Bottleneck) with one bucket per Polymarket endpoint group.
-- Automatic retries (backoff + jitter) on idempotent calls; **`POST /clob/order` is never retried** (duplicate risk).
+- Automatic retries (backoff + jitter) on idempotent calls; optional **per-API retry overrides** via `profiles`; **`POST /clob/order` is never retried** (duplicate risk).
 - Swagger UI at `/docs`.
 
 ## Requirements
@@ -57,6 +57,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 - `users` is **optional**. Without users only public endpoints work.
 - Per user: `token` (gateway bearer), `privateKey` (signer/EOA is derived from it), `funder` (Polymarket **proxy wallet**, not derivable), `signatureType: 3`, and `creds`.
 - From the config we use **only authorization data** — endpoint params are never auto-injected.
+- **Retries:** global `retries.*` applies to all APIs; override `maxElapsedMs` / `attempts` per API via `profiles.<api>.retries`. `http.timeoutMs` is shared across all APIs.
 
 ## Endpoints
 

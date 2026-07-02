@@ -17,6 +17,7 @@ rateLimits:
   enabled: true
 
 # Retries for idempotent outbound calls (POST /clob/order is never retried).
+# Global defaults apply to all APIs; override per API via profiles.<api>.retries.
 retries:
   enabled: true
   attempts: 30           # safety cap; the real limiter is maxElapsedMs
@@ -24,6 +25,15 @@ retries:
   maxDelayMs: 30000
   factor: 2
   maxElapsedMs: 1800000  # overall retry budget (30 min); 0 disables (use attempts only)
+
+# Optional per-API retry overrides (attempts, maxElapsedMs only).
+# profiles:
+#   clob:
+#     retries:
+#       maxElapsedMs: 60000
+#   data:
+#     retries:
+#       maxElapsedMs: 3600000
 
 # Outbound HTTP settings for requests to Polymarket.
 http:

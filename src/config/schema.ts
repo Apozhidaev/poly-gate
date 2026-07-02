@@ -22,6 +22,15 @@ export const userSchema = z.object({
   creds: credsSchema,
 });
 
+const retryOverrideSchema = z.object({
+  attempts: z.number().int().min(0).optional(),
+  maxElapsedMs: z.number().int().min(0).optional(),
+});
+
+const apiProfileSchema = z.object({
+  retries: retryOverrideSchema.optional(),
+});
+
 export const configSchema = z.object({
   server: z
     .object({
@@ -83,6 +92,15 @@ export const configSchema = z.object({
       timeoutMs: z.number().int().min(0).default(120000),
     })
     .default({ timeoutMs: 120000 }),
+  // Optional per-API retry overrides (attempts, maxElapsedMs only).
+  profiles: z
+    .object({
+      gamma: apiProfileSchema.optional(),
+      data: apiProfileSchema.optional(),
+      clob: apiProfileSchema.optional(),
+      pnl: apiProfileSchema.optional(),
+    })
+    .default({}),
   logLevel: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
@@ -91,3 +109,4 @@ export const configSchema = z.object({
 export type AppConfig = z.infer<typeof configSchema>;
 export type UserConfig = z.infer<typeof userSchema>;
 export type RetryConfig = AppConfig["retries"];
+export type ProfileConfig = Required<z.infer<typeof apiProfileSchema>>;

@@ -234,6 +234,7 @@ export function registerDataRoutes(app: FastifyInstance): void {
       const base = app.gate.config.upstreams.data;
       const url = base + "/v1/accounting/snapshot" + rawQueryString(request);
       const res = await app.gate.httpProxy.forward({
+        api: "data",
         bucket: "data:general",
         method: "GET",
         url,

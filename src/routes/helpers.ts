@@ -1,8 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { Api } from "../config/api.js";
 import { rawQueryString, sendUpstream } from "../lib/httpProxy.js";
 import type { BucketName } from "../lib/rateLimiter.js";
 
-export type Api = "gamma" | "data" | "clob" | "pnl";
+export type { Api };
 
 export interface ForwardPublicOptions {
   api: Api;
@@ -32,6 +33,7 @@ export async function forwardPublic(
   }
 
   const res = await app.gate.httpProxy.forward({
+    api: opts.api,
     bucket: opts.bucket,
     method: opts.method,
     url,

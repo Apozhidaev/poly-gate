@@ -1,7 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { RetryConfig } from "../config/schema.js";
+import type { Api } from "../config/api.js";
 import { UpstreamError } from "./errors.js";
 import type { BucketName, RateLimiterRegistry } from "./rateLimiter.js";
+import type { ProfileResolver } from "./profileResolver.js";
 import { withRetry } from "./retry.js";
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
@@ -31,6 +32,7 @@ function safeJson(buf: Buffer): unknown {
 }
 
 export interface ForwardOptions {
+  api: Api;
   bucket: BucketName;
   method: string;
   /** Fully-qualified upstream URL including query string. */
@@ -44,7 +46,7 @@ export interface ForwardOptions {
 export class HttpProxy {
   constructor(
     private readonly limiter: RateLimiterRegistry,
-    private readonly retryCfg: RetryConfig,
+    private readonly profile: ProfileResolver,
     private readonly logger: { warn: (obj: unknown, msg?: string) => void },
     private readonly timeoutMs = 0,
   ) {}
@@ -73,11 +75,11 @@ export class HttpProxy {
       });
 
     return withRetry(run, {
-      cfg: this.retryCfg,
+      cfg: this.profile.resolve(opts.api).retries,
       disabled: opts.retryDisabled,
       onRetry: ({ attempt, delayMs, error }) =>
         this.logger.warn(
-          { bucket: opts.bucket, url: opts.url, attempt, delayMs, err: String(error) },
+          { api: opts.api, bucket: opts.bucket, url: opts.url, attempt, delayMs, err: String(error) },
           "retrying upstream request",
         ),
     });
