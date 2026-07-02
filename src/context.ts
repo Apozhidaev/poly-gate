@@ -16,7 +16,7 @@ export function buildContext(
   logger: { warn: (obj: unknown, msg?: string) => void },
 ): GateContext {
   const limiter = new RateLimiterRegistry(config.rateLimits.enabled);
-  const httpProxy = new HttpProxy(limiter, config.retries, logger);
+  const httpProxy = new HttpProxy(limiter, config.retries, logger, config.http.timeoutMs);
   const clients = new ClobClientFactory(config);
   return { config, limiter, httpProxy, clients };
 }

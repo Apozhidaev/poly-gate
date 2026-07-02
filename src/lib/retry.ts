@@ -10,13 +10,16 @@ function isRetryable(err: unknown): boolean {
   if (err instanceof UpstreamError) {
     return RETRYABLE_STATUS.has(err.status);
   }
-  // Network-level failures (fetch throws TypeError, undici throws with a code).
+  // AbortSignal.timeout() rejects with a DOMException named "TimeoutError";
+  // manual aborts use "AbortError"; fetch network failures throw "TypeError".
+  const name = (err as { name?: string } | null)?.name;
+  if (name === "AbortError" || name === "TimeoutError" || name === "TypeError") return true;
+  // Network-level failures (undici throws with a code).
   if (err instanceof Error) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code && ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_HEADERS_TIMEOUT", "UND_ERR_SOCKET"].includes(code)) {
       return true;
     }
-    if (err.name === "AbortError" || err.name === "TypeError") return true;
   }
   return false;
 }

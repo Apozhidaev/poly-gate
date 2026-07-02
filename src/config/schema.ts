@@ -56,10 +56,19 @@ export const configSchema = z.object({
       enabled: z.boolean().default(true),
       attempts: z.number().int().min(0).default(6),
       baseDelayMs: z.number().int().min(0).default(250),
-      maxDelayMs: z.number().int().min(0).default(4000),
+      maxDelayMs: z.number().int().min(0).default(15000),
       factor: z.number().min(1).default(2),
     })
-    .default({ enabled: true, attempts: 6, baseDelayMs: 250, maxDelayMs: 4000, factor: 2 }),
+    .default({ enabled: true, attempts: 6, baseDelayMs: 250, maxDelayMs: 15000, factor: 2 }),
+  // Outbound HTTP settings for requests the gateway makes to Polymarket.
+  http: z
+    .object({
+      // Per-attempt timeout for outbound fetch calls (ms). 0 disables it.
+      // A hung upstream connection never returns data, so timing out lets the
+      // request become retryable instead of hanging on a dead socket.
+      timeoutMs: z.number().int().min(0).default(30000),
+    })
+    .default({ timeoutMs: 30000 }),
   logLevel: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

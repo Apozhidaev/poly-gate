@@ -21,8 +21,14 @@ retries:
   enabled: true
   attempts: 6
   baseDelayMs: 250
-  maxDelayMs: 4000
+  maxDelayMs: 15000
   factor: 2
+
+# Outbound HTTP settings for requests to Polymarket.
+http:
+  # Per-attempt timeout for outbound requests (ms); 0 disables.
+  # Turns a hung upstream connection into a retryable failure.
+  timeoutMs: 30000
 
 logLevel: info
 

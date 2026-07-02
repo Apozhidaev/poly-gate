@@ -46,6 +46,7 @@ export class HttpProxy {
     private readonly limiter: RateLimiterRegistry,
     private readonly retryCfg: RetryConfig,
     private readonly logger: { warn: (obj: unknown, msg?: string) => void },
+    private readonly timeoutMs = 0,
   ) {}
 
   /** Performs the upstream request with rate limiting + retry, returning the raw response. */
@@ -56,6 +57,7 @@ export class HttpProxy {
           method: opts.method,
           headers: opts.headers,
           body: opts.body,
+          signal: this.timeoutMs > 0 ? AbortSignal.timeout(this.timeoutMs) : undefined,
         });
         const body = Buffer.from(await res.arrayBuffer());
         const contentType = res.headers.get("content-type") ?? "application/octet-stream";
