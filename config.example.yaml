@@ -26,7 +26,7 @@ retries:
   factor: 2
   maxElapsedMs: 1800000  # overall retry budget (30 min); 0 disables (use attempts only)
 
-# Optional per-API retry overrides (attempts, maxElapsedMs only).
+# Optional per-API overrides (retries: attempts, maxElapsedMs only).
 # profiles:
 #   clob:
 #     retries:
