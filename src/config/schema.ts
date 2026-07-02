@@ -54,12 +54,12 @@ export const configSchema = z.object({
   retries: z
     .object({
       enabled: z.boolean().default(true),
-      attempts: z.number().int().min(0).default(3),
+      attempts: z.number().int().min(0).default(6),
       baseDelayMs: z.number().int().min(0).default(250),
       maxDelayMs: z.number().int().min(0).default(4000),
       factor: z.number().min(1).default(2),
     })
-    .default({ enabled: true, attempts: 3, baseDelayMs: 250, maxDelayMs: 4000, factor: 2 }),
+    .default({ enabled: true, attempts: 6, baseDelayMs: 250, maxDelayMs: 4000, factor: 2 }),
   logLevel: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

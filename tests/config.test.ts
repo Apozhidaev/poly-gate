@@ -18,7 +18,7 @@ describe("loadConfig", () => {
     expect(config.server.port).toBe(9090);
     expect(config.users).toEqual([]);
     expect(config.upstreams.gamma).toContain("gamma-api.polymarket.com");
-    expect(config.retries.attempts).toBe(3);
+    expect(config.retries.attempts).toBe(6);
   });
 
   it("parses a valid user", () => {

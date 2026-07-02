@@ -19,7 +19,7 @@ rateLimits:
 # Retries for idempotent outbound calls (POST /clob/order is never retried).
 retries:
   enabled: true
-  attempts: 3
+  attempts: 6
   baseDelayMs: 250
   maxDelayMs: 4000
   factor: 2

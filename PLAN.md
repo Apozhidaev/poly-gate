@@ -173,7 +173,7 @@ rateLimits:
 ```yaml
 retries:
   enabled: true
-  attempts: 3          # число повторов сверх первой попытки
+  attempts: 6          # число повторов сверх первой попытки (итого до 7 запросов)
   baseDelayMs: 250
   maxDelayMs: 4000
   factor: 2
