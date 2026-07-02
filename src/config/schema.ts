@@ -1,7 +1,11 @@
 import { z } from "zod";
 
-const hexString = z.string().regex(/^0x[0-9a-fA-F]+$/, "must be a 0x-prefixed hex string");
-const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "must be a 0x-prefixed 40-hex address");
+const hexString = z
+  .string()
+  .regex(/^0x[0-9a-fA-F]+$/, "must be a 0x-prefixed hex string");
+const address = z
+  .string()
+  .regex(/^0x[0-9a-fA-F]{40}$/, "must be a 0x-prefixed 40-hex address");
 
 export const credsSchema = z.object({
   apiKey: z.string().min(1),
@@ -16,9 +20,7 @@ export const userSchema = z.object({
   funder: address,
   // Polymarket signature type: 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271.
   // All three sign with the EOA (privateKey) on behalf of the `funder` wallet.
-  signatureType: z
-    .union([z.literal(1), z.literal(2), z.literal(3)])
-    .default(3),
+  signatureType: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(3),
   creds: credsSchema,
 });
 
@@ -109,4 +111,4 @@ export const configSchema = z.object({
 export type AppConfig = z.infer<typeof configSchema>;
 export type UserConfig = z.infer<typeof userSchema>;
 export type RetryConfig = AppConfig["retries"];
-export type ProfileConfig = Required<z.infer<typeof apiProfileSchema>>;
+export type ProfileConfig = { retries: RetryConfig };
