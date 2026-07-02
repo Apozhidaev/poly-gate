@@ -120,7 +120,7 @@ const leaderboardQuery = Type.Object(
 const holdersQuery = Type.Object(
   {
     market: Type.String({ description: "CSV of condition IDs (required)." }),
-    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 20, default: 20 })),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 500, default: 20 })),
     minBalance: Type.Optional(Type.Integer({ minimum: 0, maximum: 999999, default: 1 })),
   },
   objOpts,
