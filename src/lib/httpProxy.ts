@@ -4,7 +4,7 @@ import { UpstreamError } from "./errors.js";
 import type { BucketName, RateLimiterRegistry } from "./rateLimiter.js";
 import { withRetry } from "./retry.js";
 
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
 interface NormalizedResponse {
   status: number;

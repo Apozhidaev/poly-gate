@@ -1,7 +1,7 @@
 import type { RetryConfig } from "../config/schema.js";
 import { UpstreamError } from "./errors.js";
 
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
