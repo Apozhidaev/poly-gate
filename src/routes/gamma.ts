@@ -76,6 +76,54 @@ const keysetQuery = Type.Object(
   objOpts,
 );
 
+const marketsKeysetQuery = Type.Object(
+  {
+    limit: Type.Optional(
+      Type.Integer({ minimum: 1, maximum: 100, default: 20, description: "Max results (max 100)" }),
+    ),
+    order: Type.Optional(
+      Type.String({
+        description: "Comma-separated list of JSON field names to order by, e.g. volume_num,liquidity_num",
+      }),
+    ),
+    ascending: Type.Optional(
+      Type.Boolean({ default: true, description: "Sort direction. Only used when order is set." }),
+    ),
+    after_cursor: Type.Optional(
+      Type.String({ description: "Opaque cursor token from a previous response's next_cursor" }),
+    ),
+    id: intArray(),
+    slug: strArray(),
+    closed: Type.Optional(Type.Boolean({ default: false })),
+    decimalized: Type.Optional(Type.Boolean()),
+    clob_token_ids: strArray(),
+    condition_ids: strArray(),
+    question_ids: strArray(),
+    market_maker_address: strArray(),
+    liquidity_num_min: Type.Optional(Type.Number()),
+    liquidity_num_max: Type.Optional(Type.Number()),
+    volume_num_min: Type.Optional(Type.Number()),
+    volume_num_max: Type.Optional(Type.Number()),
+    start_date_min: dateTime(),
+    start_date_max: dateTime(),
+    end_date_min: dateTime(),
+    end_date_max: dateTime(),
+    tag_id: intArray(),
+    related_tags: Type.Optional(Type.Boolean()),
+    tag_match: Type.Optional(Type.String()),
+    cyom: Type.Optional(Type.Boolean()),
+    rfq_enabled: Type.Optional(Type.Boolean()),
+    uma_resolution_status: Type.Optional(Type.String()),
+    game_id: Type.Optional(Type.String()),
+    sports_market_types: strArray(),
+    include_tag: Type.Optional(
+      Type.Boolean({ description: "When true, includes Tags relation on each market" }),
+    ),
+    locale: Type.Optional(Type.String()),
+  },
+  objOpts,
+);
+
 const eventBySlugQuery = Type.Object(
   {
     include_chat: Type.Optional(Type.Boolean()),
@@ -109,6 +157,25 @@ export function registerGammaRoutes(app: FastifyInstance): void {
       forwardPublic(app, request, reply, {
         api: "gamma",
         upstreamPath: "/events/keyset",
+        bucket: "gamma:events",
+        method: "GET",
+      }),
+  );
+
+  app.get(
+    "/gamma/markets",
+    {
+      schema: {
+        tags: ["gamma"],
+        summary: "List markets (keyset pagination)",
+        description: "Proxy of Gamma GET /markets/keyset. Use next_cursor as after_cursor.",
+        querystring: marketsKeysetQuery,
+      },
+    },
+    (request, reply) =>
+      forwardPublic(app, request, reply, {
+        api: "gamma",
+        upstreamPath: "/markets/keyset",
         bucket: "gamma:events",
         method: "GET",
       }),
