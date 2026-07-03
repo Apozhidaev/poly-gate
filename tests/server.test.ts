@@ -86,6 +86,59 @@ describe("server", () => {
     );
   });
 
+  it("POST /gamma/events forwards upstream GET and maps events through toPostEvent", async () => {
+    const seen: { url: string; method: string }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        seen.push({ url, method: init?.method ?? "GET" });
+        return new Response(
+          JSON.stringify({
+            events: [
+              {
+                id: "evt-1",
+                startDate: "2026-01-01T00:00:00.000Z",
+                markets: [
+                  {
+                    id: "1",
+                    conditionId: "0xabc",
+                    active: true,
+                    groupItemTitle: "January 15, 2026",
+                    groupItemThreshold: 0,
+                  },
+                ],
+              },
+            ],
+            next_cursor: "abc",
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }),
+    );
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({ method: "POST", url: "/gamma/events?limit=5" });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.next_cursor).toBe("abc");
+    expect(body.events).toHaveLength(1);
+    expect(body.events[0]).toMatchObject({
+      id: "evt-1",
+      relevant: true,
+      calendar: true,
+      deadline: "2026-01-16T04:59:59.999Z",
+    });
+    expect(body.events[0].markets[0].deadline).toBe("2026-01-16T04:59:59.999Z");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({
+      url: "https://gamma-api.polymarket.com/events/keyset?limit=5",
+      method: "GET",
+    });
+  });
+
   it("passes through upstream 4xx without retrying", async () => {
     const fetchMock = vi.fn(async () => {
       return new Response(JSON.stringify({ error: "not found" }), {

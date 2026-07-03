@@ -1,6 +1,21 @@
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
-import { forwardPublic } from "./helpers.js";
+import { toPostEvent, type RawEvent } from "../lib/postEvent.js";
+import { forwardPublic, forwardPublicJson } from "./helpers.js";
+
+function mapKeysetEventsResponse(body: unknown): unknown {
+  if (!body || typeof body !== "object") {
+    return body;
+  }
+  const payload = body as { events?: unknown; next_cursor?: unknown };
+  if (!Array.isArray(payload.events)) {
+    return body;
+  }
+  return {
+    ...payload,
+    events: payload.events.map((event) => toPostEvent(event as RawEvent)),
+  };
+}
 
 const objOpts = {
   additionalProperties: true,
@@ -167,6 +182,32 @@ export function registerGammaRoutes(app: FastifyInstance): void {
         bucket: "gamma:events",
         method: "GET",
       }),
+  );
+
+  app.post(
+    "/gamma/events",
+    {
+      schema: {
+        tags: ["gamma"],
+        summary: "List events with deadline enrichment",
+        description:
+          "Same filters as GET /gamma/events (query string). Proxies Gamma GET /events/keyset and maps each event through toPostEvent (adds relevant, calendar, deadline; markets are filtered to relevant markets with per-market deadline). On deadline parse failure an event is returned with relevant=false.",
+        querystring: keysetQuery,
+      },
+    },
+    (request, reply) =>
+      forwardPublicJson(
+        app,
+        request,
+        reply,
+        {
+          api: "gamma",
+          upstreamPath: "/events/keyset",
+          bucket: "gamma:events",
+          method: "GET",
+        },
+        mapKeysetEventsResponse,
+      ),
   );
 
   app.get(

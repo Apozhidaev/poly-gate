@@ -64,6 +64,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | Method + path | Upstream | Auth |
 | --- | --- | --- |
 | `GET /gamma/events` | Gamma `/events/keyset` | – |
+| `POST /gamma/events` | Gamma `GET /events/keyset` + `toPostEvent` | – |
 | `GET /gamma/markets` | Gamma `/markets/keyset` | – |
 | `GET /gamma/events/slug/{slug}` | Gamma `/events/slug/{slug}` | – |
 | `GET /gamma/markets/slug/{slug}` | Gamma `/markets/slug/{slug}` | – |
