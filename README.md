@@ -67,6 +67,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `POST /gamma/events` | Gamma `GET /events/keyset` + `toPostEvent` | – |
 | `GET /gamma/markets` | Gamma `/markets/keyset` | – |
 | `GET /gamma/events/slug/{slug}` | Gamma `/events/slug/{slug}` | – |
+| `POST /gamma/events/slug/{slug}` | Gamma `GET /events/slug/{slug}` + `toPostEvent` | – |
 | `GET /gamma/markets/slug/{slug}` | Gamma `/markets/slug/{slug}` | – |
 | `GET /gamma/public-profile` | Gamma `/public-profile` | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |

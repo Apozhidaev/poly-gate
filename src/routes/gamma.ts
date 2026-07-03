@@ -17,6 +17,13 @@ function mapKeysetEventsResponse(body: unknown): unknown {
   };
 }
 
+function mapEventResponse(body: unknown): unknown {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return body;
+  }
+  return toPostEvent(body as RawEvent);
+}
+
 const objOpts = {
   additionalProperties: true,
   description: "Query params are forwarded 1:1 to Polymarket.",
@@ -248,6 +255,35 @@ export function registerGammaRoutes(app: FastifyInstance): void {
         bucket: "gamma:events",
         method: "GET",
       });
+    },
+  );
+
+  app.post(
+    "/gamma/events/slug/:slug",
+    {
+      schema: {
+        tags: ["gamma"],
+        summary: "Get event by slug with deadline enrichment",
+        description:
+          "Same params as GET /gamma/events/slug/{slug} (query string). Proxies Gamma GET /events/slug/{slug} and maps the event through toPostEvent (adds relevant, calendar, deadline; markets are filtered to relevant markets with per-market deadline). On deadline parse failure the event is returned with relevant=false.",
+        params: Type.Object({ slug: Type.String() }),
+        querystring: eventBySlugQuery,
+      },
+    },
+    (request, reply) => {
+      const { slug } = request.params as { slug: string };
+      return forwardPublicJson(
+        app,
+        request,
+        reply,
+        {
+          api: "gamma",
+          upstreamPath: `/events/slug/${encodeURIComponent(slug)}`,
+          bucket: "gamma:events",
+          method: "GET",
+        },
+        mapEventResponse,
+      );
     },
   );
 
