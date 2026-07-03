@@ -70,6 +70,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `POST /gamma/events/slug/{slug}` | Gamma `GET /events/slug/{slug}` + `toPostEvent` | – |
 | `GET /gamma/markets/slug/{slug}` | Gamma `/markets/slug/{slug}` | – |
 | `GET /gamma/public-profile` | Gamma `/public-profile` | – |
+| `GET /clob/order-book` | CLOB `/book` (`token_id`) | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |

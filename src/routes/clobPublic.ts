@@ -3,7 +3,36 @@ import type { FastifyInstance } from "fastify";
 import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
 
+const objOpts = { additionalProperties: true } as const;
+
+const orderBookQuery = Type.Object(
+  {
+    token_id: Type.String({ description: "Token ID (asset ID)" }),
+  },
+  objOpts,
+);
+
 export function registerClobPublicRoutes(app: FastifyInstance): void {
+  app.get(
+    "/clob/order-book",
+    {
+      schema: {
+        tags: ["clob"],
+        summary: "Get order book",
+        description:
+          "Proxy of CLOB GET /book. Retrieves the order book summary for a specific token ID (bids, asks, market details, last trade price).",
+        querystring: orderBookQuery,
+      },
+    },
+    (request, reply) =>
+      forwardPublic(app, request, reply, {
+        api: "clob",
+        upstreamPath: "/book",
+        bucket: "clob:books",
+        method: "GET",
+      }),
+  );
+
   app.post(
     "/clob/order-books",
     {

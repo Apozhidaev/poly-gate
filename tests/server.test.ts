@@ -190,6 +190,30 @@ describe("server", () => {
     });
   });
 
+  it("forwards public clob order book requests 1:1 (path + query)", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        seen.push(url);
+        return new Response(JSON.stringify({ asset_id: "123", bids: [], asks: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "GET",
+      url: "/clob/order-book?token_id=123",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ asset_id: "123", bids: [], asks: [] });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe("https://clob.polymarket.com/book?token_id=123");
+  });
+
   it("passes through upstream 4xx without retrying", async () => {
     const fetchMock = vi.fn(async () => {
       return new Response(JSON.stringify({ error: "not found" }), {
