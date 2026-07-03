@@ -20,7 +20,7 @@ It also handles **L2 authentication (POLY_1271, `signatureType: 3`)** on your be
 
 ## Requirements
 
-- Node.js >= 20 (developed on 24)
+- Node.js >= 26 (native Temporal API; developed on 26)
 
 ## Setup
 

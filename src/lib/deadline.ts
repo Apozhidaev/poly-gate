@@ -2,6 +2,9 @@
  * Adds `calendar` + `deadline` to a raw event and `deadline` to each nested market.
  */
 
+import { Temporal, type Instant } from "./temporal.js";
+
+
 export interface RawMarket {
   id?: number | string;
   conditionId?: string;
@@ -58,57 +61,21 @@ const MONTH_FULL: Record<string, number> = {
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-/**
- * Convert a wall-clock time in the given IANA timezone to the corresponding UTC instant.
- * DST-aware via `Intl.DateTimeFormat`.
- */
-function zonedWallTimeToUtc(
+function toPolymarketDeadlineInstant(
   year: number,
   month: number,
   day: number,
-  hour: number,
-  minute: number,
-  second: number,
-  ms: number,
-  timeZone: string,
-): Date {
-  const asUtc = Date.UTC(year, month - 1, day, hour, minute, second, ms);
-
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  const parts = dtf.formatToParts(new Date(asUtc));
-  const map: Record<string, number> = {};
-  for (const part of parts) {
-    if (part.type !== "literal") {
-      map[part.type] = Number(part.value);
-    }
-  }
-
-  const partsAsUtc = Date.UTC(
-    map.year,
-    map.month - 1,
-    map.day,
-    map.hour,
-    map.minute,
-    map.second,
-  );
-
-  const offset =
-    partsAsUtc - Date.UTC(year, month - 1, day, hour, minute, second);
-  return new Date(asUtc - offset);
-}
-
-function toPolymarketDeadline(year: number, month: number, day: number): Date {
-  return zonedWallTimeToUtc(year, month, day, 23, 59, 59, 999, POLYMARKET_TZ);
+): Instant {
+  return Temporal.ZonedDateTime.from({
+    timeZone: POLYMARKET_TZ,
+    year,
+    month,
+    day,
+    hour: 23,
+    minute: 59,
+    second: 59,
+    millisecond: 999,
+  }).toInstant();
 }
 
 function normalizeGroupItemTitle(title: string): string {
@@ -122,19 +89,27 @@ function marketId(market: RawMarket): number | null {
   return Number(market.id);
 }
 
-function deadlineToDate(dl: Deadline): Date {
+function deadlineToInstant(dl: Deadline): Instant {
   if (dl.year === null) {
     throw new Error(
       `group_item_title '${dl.groupItemTitle}': year not set`,
     );
   }
-  const date = toPolymarketDeadline(dl.year, dl.month, dl.day);
-  if (Number.isNaN(date.getTime())) {
+  try {
+    return toPolymarketDeadlineInstant(dl.year, dl.month, dl.day);
+  } catch {
     throw new Error(
       `group_item_title '${dl.groupItemTitle}': invalid date`,
     );
   }
-  return date;
+}
+
+function parseInstant(iso: string): Instant | null {
+  try {
+    return Temporal.Instant.from(iso);
+  } catch {
+    return null;
+  }
 }
 
 function deadlineFromGroupItem(market: RawMarket): Deadline | null {
@@ -190,10 +165,10 @@ function isDeadlinesMonotonic(
   deadlines: Deadline[],
   permissibleDeviationDays = 100,
 ): boolean {
-  const dates = deadlines.map((d) => deadlineToDate(d).getTime());
+  const epochMs = deadlines.map((d) => deadlineToInstant(d).epochMilliseconds);
   const permissibleDelta = permissibleDeviationDays * DAY_MS;
-  for (let i = 0; i < dates.length - 1; i++) {
-    if (!(dates[i] - permissibleDelta < dates[i + 1])) {
+  for (let i = 0; i < epochMs.length - 1; i++) {
+    if (!(epochMs[i] - permissibleDelta < epochMs[i + 1])) {
       return false;
     }
   }
@@ -270,9 +245,9 @@ function calendarFromGroupItems(
 }
 
 function sameDeadline(
-  deadlineMap: Map<number, Date>,
+  deadlineMap: Map<number, Instant>,
   marketsCount: number,
-): Date | null {
+): Instant | null {
   if (deadlineMap.size === 0) {
     return null;
   }
@@ -280,19 +255,19 @@ function sameDeadline(
     return null;
   }
 
-  const times = [...deadlineMap.values()].map((d) => d.getTime());
-  const maxDeadline = Math.max(...times);
-  const minDeadline = Math.min(...times);
+  const epochMs = [...deadlineMap.values()].map((d) => d.epochMilliseconds);
+  const maxDeadline = Math.max(...epochMs);
+  const minDeadline = Math.min(...epochMs);
   if (maxDeadline - minDeadline > HOUR_MS) {
     return null;
   }
-  return new Date(maxDeadline);
+  return Temporal.Instant.fromEpochMilliseconds(maxDeadline);
 }
 
 interface DeadlineMapResult {
-  deadlineMap: Map<number, Date>;
+  deadlineMap: Map<number, Instant>;
   calendarFilled: boolean;
-  eventDeadline: Date | null;
+  eventDeadline: Instant | null;
 }
 
 function getDeadlineMapForMarkets(
@@ -309,12 +284,12 @@ function getDeadlineMapForMarkets(
   }
 
   const deadlines = calendarFromGroupItems(markets, eventStartDate);
-  const calendarMap = new Map<number, Date>();
+  const calendarMap = new Map<number, Instant>();
   for (const deadline of deadlines) {
-    calendarMap.set(deadline.marketId, deadlineToDate(deadline));
+    calendarMap.set(deadline.marketId, deadlineToInstant(deadline));
   }
 
-  const deadlineMap = new Map<number, Date>();
+  const deadlineMap = new Map<number, Instant>();
   for (const market of markets) {
     const id = marketId(market);
     if (id === null) {
@@ -327,7 +302,10 @@ function getDeadlineMapForMarkets(
     }
     const endDate = market.endDate || eventEndDate;
     if (endDate) {
-      deadlineMap.set(id, new Date(endDate));
+      const instant = parseInstant(endDate);
+      if (instant !== null) {
+        deadlineMap.set(id, instant);
+      }
     }
   }
 
@@ -350,8 +328,8 @@ function hasConditionId(market: RawMarket): boolean {
   return Boolean(market.conditionId);
 }
 
-function toIso(date: Date | null | undefined): string | null {
-  return date ? date.toISOString() : null;
+function toIso(instant: Instant | null | undefined): string | null {
+  return instant ? instant.toString() : null;
 }
 
 /**
@@ -380,7 +358,7 @@ export function mapToEventWithDeadline(event: RawEvent): RawEvent {
       startDate,
       event.endDate ?? null,
     );
-  } catch (error) {
+  } catch {
     return result;
   }
 
