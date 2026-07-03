@@ -4,11 +4,9 @@
 
 import { Temporal, type Instant } from "./temporal.js";
 
-
 export interface RawMarket {
-  id?: number | string;
+  id: string;
   conditionId?: string;
-  condition_id?: string;
   groupItemTitle?: string | null;
   groupItemThreshold?: number | null;
   endDate?: string | null;
@@ -19,7 +17,7 @@ export interface RawMarket {
 }
 
 export interface RawEvent {
-  id?: number | string;
+  id: string;
   startDate?: string | null;
   createdAt?: string | null;
   endDate?: string | null;
@@ -27,13 +25,19 @@ export interface RawEvent {
   [key: string]: unknown;
 }
 
-export interface Deadline {
-  marketId: number;
+interface Deadline {
+  marketId: string;
   groupItemTitle: string;
   groupItemThreshold: number;
   month: number;
   day: number;
   year: number | null;
+}
+
+interface DeadlineResult {
+  deadlineMap: Map<string, Instant>;
+  calendarFilled: boolean;
+  eventDeadline: Instant | null;
 }
 
 const POLYMARKET_TZ = "America/New_York";
@@ -61,47 +65,24 @@ const MONTH_FULL: Record<string, number> = {
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-function toPolymarketDeadlineInstant(
-  year: number,
-  month: number,
-  day: number,
-): Instant {
+function normalizeGroupItemTitle(title: string): string {
+  return title.trim().replace(WEEKDAY_PREFIX_RE, "");
+}
+
+function deadlineToInstant(dl: Deadline): Instant {
+  if (dl.year === null) {
+    throw new Error(`groupItemTitle '${dl.groupItemTitle}': year not set`);
+  }
   return Temporal.ZonedDateTime.from({
     timeZone: POLYMARKET_TZ,
-    year,
-    month,
-    day,
+    year: dl.year,
+    month: dl.month,
+    day: dl.day,
     hour: 23,
     minute: 59,
     second: 59,
     millisecond: 999,
   }).toInstant();
-}
-
-function normalizeGroupItemTitle(title: string): string {
-  return title.trim().replace(WEEKDAY_PREFIX_RE, "");
-}
-
-function marketId(market: RawMarket): number | null {
-  if (market.id == null) {
-    return null;
-  }
-  return Number(market.id);
-}
-
-function deadlineToInstant(dl: Deadline): Instant {
-  if (dl.year === null) {
-    throw new Error(
-      `group_item_title '${dl.groupItemTitle}': year not set`,
-    );
-  }
-  try {
-    return toPolymarketDeadlineInstant(dl.year, dl.month, dl.day);
-  } catch {
-    throw new Error(
-      `group_item_title '${dl.groupItemTitle}': invalid date`,
-    );
-  }
 }
 
 function parseInstant(iso: string): Instant | null {
@@ -113,13 +94,9 @@ function parseInstant(iso: string): Instant | null {
 }
 
 function deadlineFromGroupItem(market: RawMarket): Deadline | null {
-  const id = marketId(market);
   const originalTitle = market.groupItemTitle;
   const threshold = market.groupItemThreshold;
 
-  if (id === null) {
-    return null;
-  }
   if (!originalTitle) {
     return null;
   }
@@ -142,18 +119,18 @@ function deadlineFromGroupItem(market: RawMarket): Deadline | null {
   if (month === undefined) {
     return null;
   }
-  const day = parseInt(dayStr, 10);
+  const day = Number(dayStr);
   if (day < 1 || day > 31) {
     return null;
   }
 
   return {
-    marketId: id,
+    marketId: market.id,
     groupItemTitle: originalTitle,
     groupItemThreshold: threshold,
     month,
     day,
-    year: yearStr !== undefined ? parseInt(yearStr, 10) : null,
+    year: yearStr !== undefined ? Number(yearStr) : null,
   };
 }
 
@@ -181,7 +158,7 @@ function isoYearMonth(iso: string): { year: number; month: number } {
   if (!m) {
     throw new Error(`invalid event start date: '${iso}'`);
   }
-  return { year: parseInt(m[1], 10), month: parseInt(m[2], 10) };
+  return { year: Number(m[1]), month: Number(m[2]) };
 }
 
 function calendarFromGroupItems(
@@ -216,7 +193,7 @@ function calendarFromGroupItems(
     return deadlines;
   }
 
-  const eventStart = isoYearMonth(eventStartDate);
+  const eventStart = isoYearMonth(eventStartDate); // todo: should this be ZonedDateTime?
 
   const firstDeadline = deadlines[0];
   if (firstDeadline.year === null) {
@@ -245,7 +222,7 @@ function calendarFromGroupItems(
 }
 
 function sameDeadline(
-  deadlineMap: Map<number, Instant>,
+  deadlineMap: Map<string, Instant>,
   marketsCount: number,
 ): Instant | null {
   if (deadlineMap.size === 0) {
@@ -264,37 +241,24 @@ function sameDeadline(
   return Temporal.Instant.fromEpochMilliseconds(maxDeadline);
 }
 
-interface DeadlineMapResult {
-  deadlineMap: Map<number, Instant>;
-  calendarFilled: boolean;
-  eventDeadline: Instant | null;
-}
-
-function getDeadlineMapForMarkets(
+function clarifyDeadlines(
   markets: RawMarket[],
   eventStartDate: string,
   eventEndDate: string | null,
-): DeadlineMapResult {
+): DeadlineResult {
   if (markets.length === 0) {
-    return {
-      deadlineMap: new Map(),
-      calendarFilled: false,
-      eventDeadline: null,
-    };
+    throw new Error("no markets");
   }
 
   const deadlines = calendarFromGroupItems(markets, eventStartDate);
-  const calendarMap = new Map<number, Instant>();
+  const calendarMap = new Map<string, Instant>();
   for (const deadline of deadlines) {
     calendarMap.set(deadline.marketId, deadlineToInstant(deadline));
   }
 
-  const deadlineMap = new Map<number, Instant>();
+  const deadlineMap = new Map<string, Instant>();
   for (const market of markets) {
-    const id = marketId(market);
-    if (id === null) {
-      continue;
-    }
+    const id = market.id;
     const calendarDeadline = calendarMap.get(id);
     if (calendarDeadline !== undefined) {
       deadlineMap.set(id, calendarDeadline);
@@ -309,23 +273,21 @@ function getDeadlineMapForMarkets(
     }
   }
 
-  const marketsCount = markets.length;
   return {
     deadlineMap,
-    calendarFilled: marketsCount === deadlines.length,
-    eventDeadline: sameDeadline(deadlineMap, marketsCount),
+    calendarFilled: markets.length === deadlines.length,
+    eventDeadline: sameDeadline(deadlineMap, markets.length),
   };
 }
 
 function marketRelevant(market: RawMarket): boolean {
+  if (!market.id || !market.conditionId) {
+    return false;
+  }
   return (
     market.active === true ||
     (market.archived === true && market.closed === true)
   );
-}
-
-function hasConditionId(market: RawMarket): boolean {
-  return Boolean(market.conditionId);
 }
 
 function toIso(instant: Instant | null | undefined): string | null {
@@ -336,24 +298,28 @@ function toIso(instant: Instant | null | undefined): string | null {
  * Add `calendar` + `deadline` to a raw event and `deadline` to each nested market.
  * Returns a shallow copy; nested markets are also copied.
  */
-export function mapToEventWithDeadline(event: RawEvent): RawEvent {
-  const result: RawEvent = { ...event };
+export function toPostEvent(event: RawEvent): RawEvent {
+  const result: RawEvent = { ...event, relevant: false };
+  if (!result.id) {
+    return result;
+  }
 
-  // Only actually parsed when calendar year backfill is needed (see isoYearMonth).
-  const startDate = event.startDate || event.createdAt || "";
+  const startDate = event.startDate || event.createdAt;
 
   if (!startDate) {
     return result;
   }
 
-  const marketsRaw = event.markets ?? [];
-  const markets = marketsRaw.filter(hasConditionId);
-  const relevantMarkets = markets.filter(marketRelevant);
+  const relevantMarkets = (event.markets ?? []).filter(marketRelevant);
 
-  let mapResult: DeadlineMapResult;
+  if (relevantMarkets.length === 0) {
+    return result;
+  }
+
+  let deadlineResult: DeadlineResult;
 
   try {
-    mapResult = getDeadlineMapForMarkets(
+    deadlineResult = clarifyDeadlines(
       relevantMarkets,
       startDate,
       event.endDate ?? null,
@@ -362,21 +328,17 @@ export function mapToEventWithDeadline(event: RawEvent): RawEvent {
     return result;
   }
 
-  const { deadlineMap, calendarFilled, eventDeadline } = mapResult;
+  const { deadlineMap, calendarFilled, eventDeadline } = deadlineResult;
 
+  result.relevant = true;
   result.calendar = calendarFilled;
   result.deadline = toIso(eventDeadline);
 
-  if (marketsRaw.length > 0) {
-    result.markets = marketsRaw.map((raw) => {
-      const item: RawMarket = { ...raw };
-      const id = marketId(raw);
-      if (id !== null) {
-        item.deadline = toIso(deadlineMap.get(id));
-      }
-      return item;
-    });
-  }
+  result.markets = relevantMarkets.map((market) => {
+    const item: RawMarket = { ...market };
+    item.deadline = toIso(deadlineMap.get(market.id));
+    return item;
+  });
 
   return result;
 }
