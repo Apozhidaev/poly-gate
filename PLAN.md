@@ -148,7 +148,7 @@ rateLimits:
 | clob:data:trades         | 500 req/10s             | `GET /clob/trades`                           |
 | clob:balance             | 200 req/10s             | `GET /clob/usdc-balance`, `GET /clob/token-balance` |
 | data:trades              | 200 req/10s             | `GET /data/trades`                           |
-| data:positions           | 150 req/10s             | `GET /data/closed-positions`                 |
+| data:positions           | 150 req/10s             | `GET /data/positions`, `GET /data/closed-positions` |
 | data:general             | 1000 req/10s            | `GET /data/activity`, `GET /data/leaderboard`, `GET /data/holders`, `GET /data/accounting/snapshot` |
 | pnl:general              | 100 req/10s (запас)     | `GET /pnl/user-pnl`                          |
 
@@ -221,6 +221,7 @@ http:
 
 ### Data API (публичные, без Bearer) — префикс `/data`
 Все параметры (`user`, `market`, `address` и т.д.) — ровно как у Polymarket, от клиента.
+- `GET /data/positions` → `GET data /positions`
 - `GET /data/closed-positions` → `GET data /closed-positions`
 - `GET /data/activity` → `GET data /activity`
 - `GET /data/trades` → `GET data /trades`

@@ -214,6 +214,32 @@ describe("server", () => {
     expect(seen[0]).toBe("https://clob.polymarket.com/book?token_id=123");
   });
 
+  it("forwards public data positions requests 1:1 (path + query)", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        seen.push(url);
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "GET",
+      url: "/data/positions?user=0x56687bf447db6ffa42ffe2204a05edaa20f55839&limit=10",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([]);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(
+      "https://data-api.polymarket.com/positions?user=0x56687bf447db6ffa42ffe2204a05edaa20f55839&limit=10",
+    );
+  });
+
   it("passes through upstream 4xx without retrying", async () => {
     const fetchMock = vi.fn(async () => {
       return new Response(JSON.stringify({ error: "not found" }), {

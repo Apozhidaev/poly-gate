@@ -78,6 +78,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /clob/trades` | CLOB `/data/trades` | Bearer |
 | `GET /clob/usdc-balance` | CLOB USDC/collateral balance | Bearer |
 | `GET /clob/token-balance` | CLOB conditional token balance (`token_id`) | Bearer |
+| `GET /data/positions` | Data `/positions` | – |
 | `GET /data/closed-positions` | Data `/closed-positions` | – |
 | `GET /data/activity` | Data `/activity` | – |
 | `GET /data/trades` | Data `/trades` | – |

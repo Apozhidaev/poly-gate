@@ -44,6 +44,42 @@ const activityQuery = Type.Object(
   objOpts,
 );
 
+const positionsQuery = Type.Object(
+  {
+    user: address({ description: "User address (required)" }),
+    market: Type.Optional(
+      Type.String({ description: "CSV of condition IDs. Mutually exclusive with eventId." }),
+    ),
+    eventId: Type.Optional(
+      Type.String({ description: "CSV of event IDs. Mutually exclusive with market." }),
+    ),
+    sizeThreshold: Type.Optional(Type.Number({ minimum: 0, default: 1 })),
+    redeemable: Type.Optional(Type.Boolean({ default: false })),
+    mergeable: Type.Optional(Type.Boolean({ default: false })),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 500, default: 100 })),
+    offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 10000, default: 0 })),
+    sortBy: Type.Optional(
+      enumU(
+        [
+          "CURRENT",
+          "INITIAL",
+          "TOKENS",
+          "CASHPNL",
+          "PERCENTPNL",
+          "TITLE",
+          "RESOLVING",
+          "PRICE",
+          "AVGPRICE",
+        ],
+        { default: "TOKENS" },
+      ),
+    ),
+    sortDirection: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
+    title: Type.Optional(Type.String({ maxLength: 100 })),
+  },
+  objOpts,
+);
+
 const closedPositionsQuery = Type.Object(
   {
     user: address(),
@@ -156,6 +192,13 @@ interface DataRoute {
 }
 
 const ROUTES: DataRoute[] = [
+  {
+    path: "/data/positions",
+    upstreamPath: "/positions",
+    bucket: "data:positions",
+    summary: "Get current positions for a user",
+    querystring: positionsQuery,
+  },
   {
     path: "/data/closed-positions",
     upstreamPath: "/closed-positions",
