@@ -2,13 +2,6 @@
  * Adds `calendar` + `deadline` to a raw event and `deadline` to each nested market.
  */
 
-export class ContractError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ContractError";
-  }
-}
-
 export interface RawMarket {
   id?: number | string;
   conditionId?: string;
@@ -109,7 +102,8 @@ function zonedWallTimeToUtc(
     map.second,
   );
 
-  const offset = partsAsUtc - Date.UTC(year, month - 1, day, hour, minute, second);
+  const offset =
+    partsAsUtc - Date.UTC(year, month - 1, day, hour, minute, second);
   return new Date(asUtc - offset);
 }
 
@@ -121,26 +115,22 @@ function normalizeGroupItemTitle(title: string): string {
   return title.trim().replace(WEEKDAY_PREFIX_RE, "");
 }
 
-function parseId(v: number | string): number {
-  return typeof v === "number" ? v : parseInt(v, 10);
-}
-
 function marketId(market: RawMarket): number | null {
-  if (market.id === undefined || market.id === null) {
+  if (market.id == null) {
     return null;
   }
-  return parseId(market.id);
+  return Number(market.id);
 }
 
 function deadlineToDate(dl: Deadline): Date {
   if (dl.year === null) {
-    throw new ContractError(
+    throw new Error(
       `group_item_title '${dl.groupItemTitle}': year not set`,
     );
   }
   const date = toPolymarketDeadline(dl.year, dl.month, dl.day);
   if (Number.isNaN(date.getTime())) {
-    throw new ContractError(
+    throw new Error(
       `group_item_title '${dl.groupItemTitle}': invalid date`,
     );
   }
@@ -158,7 +148,7 @@ function deadlineFromGroupItem(market: RawMarket): Deadline | null {
   if (!originalTitle) {
     return null;
   }
-  if (threshold === undefined || threshold === null) {
+  if (threshold == null) {
     return null;
   }
 
@@ -171,7 +161,9 @@ function deadlineFromGroupItem(market: RawMarket): Deadline | null {
   const [, monthName, dayStr, yearStr] = m;
   const month =
     MONTH_FULL[monthName] ??
-    MONTH_FULL[monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()];
+    MONTH_FULL[
+      monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase()
+    ];
   if (month === undefined) {
     return null;
   }
@@ -212,7 +204,7 @@ function isDeadlinesMonotonic(
 function isoYearMonth(iso: string): { year: number; month: number } {
   const m = /^(\d{4})-(\d{2})/.exec(iso);
   if (!m) {
-    throw new ContractError(`invalid event start date: '${iso}'`);
+    throw new Error(`invalid event start date: '${iso}'`);
   }
   return { year: parseInt(m[1], 10), month: parseInt(m[2], 10) };
 }
@@ -271,7 +263,7 @@ function calendarFromGroupItems(
   }
 
   if (!isDeadlinesMonotonic(deadlines)) {
-    throw new ContractError("deadlines are not monotonically increasing");
+    throw new Error("deadlines are not monotonically increasing");
   }
 
   return deadlines;
@@ -300,7 +292,7 @@ function sameDeadline(
 interface DeadlineMapResult {
   deadlineMap: Map<number, Date>;
   calendarFilled: boolean;
-  sameDeadline: Date | null;
+  eventDeadline: Date | null;
 }
 
 function getDeadlineMapForMarkets(
@@ -309,7 +301,11 @@ function getDeadlineMapForMarkets(
   eventEndDate: string | null,
 ): DeadlineMapResult {
   if (markets.length === 0) {
-    return { deadlineMap: new Map(), calendarFilled: false, sameDeadline: null };
+    return {
+      deadlineMap: new Map(),
+      calendarFilled: false,
+      eventDeadline: null,
+    };
   }
 
   const deadlines = calendarFromGroupItems(markets, eventStartDate);
@@ -339,7 +335,7 @@ function getDeadlineMapForMarkets(
   return {
     deadlineMap,
     calendarFilled: marketsCount === deadlines.length,
-    sameDeadline: sameDeadline(deadlineMap, marketsCount),
+    eventDeadline: sameDeadline(deadlineMap, marketsCount),
   };
 }
 
@@ -351,7 +347,7 @@ function marketRelevant(market: RawMarket): boolean {
 }
 
 function hasConditionId(market: RawMarket): boolean {
-  return Boolean(market.conditionId || market.condition_id);
+  return Boolean(market.conditionId);
 }
 
 function toIso(date: Date | null | undefined): string | null {
@@ -365,18 +361,33 @@ function toIso(date: Date | null | undefined): string | null {
 export function mapToEventWithDeadline(event: RawEvent): RawEvent {
   const result: RawEvent = { ...event };
 
+  // Only actually parsed when calendar year backfill is needed (see isoYearMonth).
+  const startDate = event.startDate || event.createdAt || "";
+
+  if (!startDate) {
+    return result;
+  }
+
   const marketsRaw = event.markets ?? [];
   const markets = marketsRaw.filter(hasConditionId);
   const relevantMarkets = markets.filter(marketRelevant);
 
-  // Only actually parsed when calendar year backfill is needed (see isoYearMonth).
-  const startDate = event.startDate || event.createdAt || "";
+  let mapResult: DeadlineMapResult;
 
-  const { deadlineMap, calendarFilled, sameDeadline: same } =
-    getDeadlineMapForMarkets(relevantMarkets, startDate, event.endDate ?? null);
+  try {
+    mapResult = getDeadlineMapForMarkets(
+      relevantMarkets,
+      startDate,
+      event.endDate ?? null,
+    );
+  } catch (error) {
+    return result;
+  }
+
+  const { deadlineMap, calendarFilled, eventDeadline } = mapResult;
 
   result.calendar = calendarFilled;
-  result.deadline = toIso(same);
+  result.deadline = toIso(eventDeadline);
 
   if (marketsRaw.length > 0) {
     result.markets = marketsRaw.map((raw) => {
