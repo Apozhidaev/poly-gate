@@ -10,6 +10,9 @@ export interface RawMarket {
   groupItemTitle?: string | null;
   groupItemThreshold?: number | null;
   endDate?: string | null;
+  startDate?: string | null;
+  createdAt?: string | null;
+  acceptingOrdersTimestamp?: string | null;
   active?: boolean;
   archived?: boolean;
   closed?: boolean;
@@ -294,6 +297,11 @@ function toIso(instant: Instant | null | undefined): string | null {
   return instant ? instant.toString() : null;
 }
 
+function clarifyStart(...dates: (string | undefined | null)[]): string | null {
+  const date = dates.find(Boolean);
+  return date ? date : null;
+}
+
 /**
  * Add `calendar` + `deadline` to a raw event and `deadline` to each nested market.
  * Returns a shallow copy; nested markets are also copied.
@@ -304,9 +312,9 @@ export function toPostEvent(event: RawEvent): RawEvent {
     return result;
   }
 
-  const startDate = event.startDate || event.createdAt;
+  const eventStart = clarifyStart(event.startDate, event.createdAt);
 
-  if (!startDate) {
+  if (!eventStart) {
     return result;
   }
 
@@ -321,7 +329,7 @@ export function toPostEvent(event: RawEvent): RawEvent {
   try {
     deadlineResult = clarifyDeadlines(
       relevantMarkets,
-      startDate,
+      eventStart,
       event.endDate ?? null,
     );
   } catch {
@@ -336,7 +344,15 @@ export function toPostEvent(event: RawEvent): RawEvent {
 
   result.markets = relevantMarkets.map((market) => {
     const item: RawMarket = { ...market };
-    item.deadline = toIso(deadlineMap.get(market.id));
+    const deadline = deadlineMap.get(market.id);
+    item.duration = null;
+    if (deadline) {
+      const marketStart = clarifyStart(market.startDate, market.acceptingOrdersTimestamp, market.createdAt);
+      if (marketStart) {
+        item.duration = null;
+      }
+    }
+    item.deadline = toIso(deadline);
     return item;
   });
 
