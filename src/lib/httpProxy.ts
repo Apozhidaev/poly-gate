@@ -4,6 +4,7 @@ import { UpstreamError } from "./errors.js";
 import type { BucketName, RateLimiterRegistry } from "./rateLimiter.js";
 import type { ProfileResolver } from "./profileResolver.js";
 import { withRetry } from "./retry.js";
+import { ProfileOverrides } from "../config/schema.js";
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
@@ -41,6 +42,8 @@ export interface ForwardOptions {
   body?: string;
   headers?: Record<string, string>;
   retryDisabled?: boolean;
+  /** Retry overrides for the upstream API. */
+  overrides?: ProfileOverrides;
 }
 
 export class HttpProxy {
@@ -75,7 +78,7 @@ export class HttpProxy {
       });
 
     return withRetry(run, {
-      cfg: this.profile.resolve(opts.api).retries,
+      cfg: this.profile.resolve(opts.api, opts.overrides).retries,
       disabled: opts.retryDisabled,
       onRetry: ({ attempt, delayMs, error }) =>
         this.logger.warn(

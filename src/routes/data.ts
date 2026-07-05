@@ -281,6 +281,11 @@ export function registerDataRoutes(app: FastifyInstance): void {
         bucket: "data:general",
         method: "GET",
         url,
+        overrides: {
+          retries: {
+            attempts: 5,
+          },
+        },
       });
       if (res.status !== 200) {
         sendUpstream(reply, res);

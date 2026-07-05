@@ -1,3 +1,4 @@
+import { ProfileOverrides } from "../../config/schema.js";
 import type { GateContext } from "../../context.js";
 import { UpstreamError } from "../errors.js";
 import type { BucketName } from "../rateLimiter.js";
@@ -22,6 +23,8 @@ export interface ClobCallOptions {
   bucket: BucketName;
   /** Disable retries for non-idempotent calls (POST /clob/order). */
   retryDisabled?: boolean;
+  /** Retry overrides for the upstream API. */
+  overrides?: ProfileOverrides;
 }
 
 /** Schedules an SDK call through the rate limiter + retry, unwrapping SDK error objects. */
@@ -34,7 +37,7 @@ export function scheduleClobCall<T>(
     ctx.limiter.schedule(opts.bucket, async () => unwrapClobResult(await fn()));
 
   return withRetry(run, {
-    cfg: ctx.profile.resolve("clob").retries,
+    cfg: ctx.profile.resolve("clob", opts.overrides).retries,
     disabled: opts.retryDisabled,
   });
 }

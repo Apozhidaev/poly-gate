@@ -112,3 +112,4 @@ export type AppConfig = z.infer<typeof configSchema>;
 export type UserConfig = z.infer<typeof userSchema>;
 export type RetryConfig = AppConfig["retries"];
 export type ProfileConfig = { retries: RetryConfig };
+export type ProfileOverrides = z.infer<typeof apiProfileSchema>;
