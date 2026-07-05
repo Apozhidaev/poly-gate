@@ -163,5 +163,40 @@ describe("toPostEvent", () => {
     expect(event.markets).toHaveLength(1);
     expect(event.markets?.[0].id).toBe("2");
     expect(event.markets?.[0].deadline).toBe("2026-01-16T04:59:59.999Z");
+    expect(event.markets?.[0].durationMinutes).toBeNull();
+  });
+
+  it("computes durationMinutes as rounded minutes between deadline and market start", () => {
+    const event = toPostEvent({
+      id: eventId,
+      startDate: "2026-01-01T00:00:00.000Z",
+      markets: [
+        activeMarket({
+          id: "1",
+          groupItemTitle: "January 15, 2026",
+          startDate: "2026-01-01T00:00:00.000Z",
+        }),
+      ],
+    });
+
+    expect(event.markets?.[0].deadline).toBe("2026-01-16T04:59:59.999Z");
+    expect(event.markets?.[0].durationMinutes).toBe(21_900);
+  });
+
+  it("prefers market startDate over acceptingOrdersTimestamp for durationMinutes", () => {
+    const event = toPostEvent({
+      id: eventId,
+      startDate: "2026-01-01T00:00:00.000Z",
+      markets: [
+        activeMarket({
+          id: "1",
+          groupItemTitle: "January 15, 2026",
+          startDate: "2026-01-10T00:00:00.000Z",
+          acceptingOrdersTimestamp: "2026-01-01T00:00:00.000Z",
+        }),
+      ],
+    });
+
+    expect(event.markets?.[0].durationMinutes).toBe(8_940);
   });
 });

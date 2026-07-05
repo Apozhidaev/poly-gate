@@ -67,6 +67,7 @@ const MONTH_FULL: Record<string, number> = {
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+const MINUTE_MS = 60 * 1000;
 
 function normalizeGroupItemTitle(title: string): string {
   return title.trim().replace(WEEKDAY_PREFIX_RE, "");
@@ -297,6 +298,14 @@ function toIso(instant: Instant | null | undefined): string | null {
   return instant ? instant.toString() : null;
 }
 
+function durationMinutesBetween(deadline: Instant, startIso: string): number | null {
+  const start = parseInstant(startIso);
+  if (start === null) {
+    return null;
+  }
+  return Math.round((deadline.epochMilliseconds - start.epochMilliseconds) / MINUTE_MS);
+}
+
 function clarifyStart(...dates: (string | undefined | null)[]): string | null {
   const date = dates.find(Boolean);
   return date ? date : null;
@@ -345,14 +354,18 @@ export function toPostEvent(event: RawEvent): RawEvent {
   result.markets = relevantMarkets.map((market) => {
     const item: RawMarket = { ...market };
     const deadline = deadlineMap.get(market.id);
-    item.duration = null;
+    item.deadline = toIso(deadline);
+    item.durationMinutes = null;
     if (deadline) {
-      const marketStart = clarifyStart(market.startDate, market.acceptingOrdersTimestamp, market.createdAt);
+      const marketStart = clarifyStart(
+        market.startDate,
+        market.acceptingOrdersTimestamp,
+        market.createdAt,
+      );
       if (marketStart) {
-        item.duration = null;
+        item.durationMinutes = durationMinutesBetween(deadline, marketStart);
       }
     }
-    item.deadline = toIso(deadline);
     return item;
   });
 
