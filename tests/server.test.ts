@@ -190,6 +190,30 @@ describe("server", () => {
     });
   });
 
+  it("accepts long event slugs over the default router param limit", async () => {
+    const longSlug =
+      "how-many-of-these-34-aipac-endorsees-will-lose-their-primaries-through-august-4-primaries-20260702145459068";
+    expect(longSlug.length).toBeGreaterThan(100);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ id: "evt-1", slug: longSlug }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: `/gamma/events/slug/${longSlug}`,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().slug).toBe(longSlug);
+  });
+
   it("forwards public clob order book requests 1:1 (path + query)", async () => {
     const seen: string[] = [];
     vi.stubGlobal(

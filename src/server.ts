@@ -17,6 +17,9 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
     logger: { level: config.logLevel },
     // Accept binary passthrough bodies without choking.
     bodyLimit: 5 * 1024 * 1024,
+    // find-my-way defaults to 100; no "unlimited" option — use max safe integer so the
+    // gateway never rejects long path params (slugs, ids) before forwarding upstream.
+    routerOptions: { maxParamLength: Number.MAX_SAFE_INTEGER },
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Shared services.
