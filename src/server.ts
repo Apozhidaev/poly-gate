@@ -15,8 +15,9 @@ import { registerPnlRoutes } from "./routes/pnl.js";
 export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.logLevel },
-    // Accept binary passthrough bodies without choking.
-    bodyLimit: 5 * 1024 * 1024,
+    // find-my-way / Fastify impose defaults; use max safe integer so upstream rejects
+    // oversized payloads, not the gateway (private service, no public abuse surface).
+    bodyLimit: Number.MAX_SAFE_INTEGER,
     // find-my-way defaults to 100; no "unlimited" option — use max safe integer so the
     // gateway never rejects long path params (slugs, ids) before forwarding upstream.
     routerOptions: { maxParamLength: Number.MAX_SAFE_INTEGER },
