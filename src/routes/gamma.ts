@@ -154,6 +154,13 @@ const eventBySlugQuery = Type.Object(
   objOpts,
 );
 
+const seriesByIdQuery = Type.Object(
+  {
+    include_chat: Type.Optional(Type.Boolean()),
+  },
+  objOpts,
+);
+
 const marketBySlugQuery = Type.Object(
   {
     include_tag: Type.Optional(Type.Boolean()),
@@ -303,6 +310,28 @@ export function registerGammaRoutes(app: FastifyInstance): void {
       return forwardPublic(app, request, reply, {
         api: "gamma",
         upstreamPath: `/markets/slug/${encodeURIComponent(slug)}`,
+        bucket: "gamma:events",
+        method: "GET",
+      });
+    },
+  );
+
+  app.get(
+    "/gamma/series/:id",
+    {
+      schema: {
+        tags: ["gamma"],
+        summary: "Get series by id",
+        description: "Proxy of Gamma GET /series/{id}.",
+        params: Type.Object({ id: Type.Integer() }),
+        querystring: seriesByIdQuery,
+      },
+    },
+    (request, reply) => {
+      const { id } = request.params as { id: number };
+      return forwardPublic(app, request, reply, {
+        api: "gamma",
+        upstreamPath: `/series/${id}`,
         bucket: "gamma:events",
         method: "GET",
       });

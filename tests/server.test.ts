@@ -214,6 +214,30 @@ describe("server", () => {
     expect(res.json().slug).toBe(longSlug);
   });
 
+  it("forwards public gamma series by id requests 1:1 (path + query)", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        seen.push(url);
+        return new Response(JSON.stringify({ id: "42", title: "Test Series" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "GET",
+      url: "/gamma/series/42?include_chat=true",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ id: "42", title: "Test Series" });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe("https://gamma-api.polymarket.com/series/42?include_chat=true");
+  });
+
   it("forwards public clob order book requests 1:1 (path + query)", async () => {
     const seen: string[] = [];
     vi.stubGlobal(
