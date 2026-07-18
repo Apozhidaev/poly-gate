@@ -1,4 +1,4 @@
-import Bottleneck from "bottleneck";
+import { RateLimiter } from "./rateLimiter.js";
 
 /**
  * Outbound rate-limit buckets, one per Polymarket endpoint group.
@@ -25,58 +25,87 @@ const SAFETY = 0.9;
 
 const scale = (n: number) => Math.max(1, Math.floor(n * SAFETY));
 
-/** A simple 10s-window bucket. */
-function window10s(perTenSeconds: number): Bottleneck {
-  const reservoir = scale(perTenSeconds);
-  return new Bottleneck({
-    reservoir,
-    reservoirRefreshAmount: reservoir,
-    reservoirRefreshInterval: TEN_SECONDS,
-  });
-}
-
-/** Burst (10s) limiter chained under a sustained (10min) limiter. */
-function burstWithSustained(burstPer10s: number, sustainedPer10min: number): Bottleneck {
-  const sustainedReservoir = scale(sustainedPer10min);
-  const sustained = new Bottleneck({
-    reservoir: sustainedReservoir,
-    reservoirRefreshAmount: sustainedReservoir,
-    reservoirRefreshInterval: TEN_MINUTES,
-  });
-  const burst = window10s(burstPer10s);
-  burst.chain(sustained);
-  return burst;
-}
+const pnlGeneralLimiter = new RateLimiter({
+  interval: TEN_SECONDS,
+  count: scale(100),
+});
 
 export class RateLimiterRegistry {
-  private readonly buckets: Record<BucketName, Bottleneck>;
+  private readonly buckets: Record<BucketName, RateLimiter[]>;
   private readonly enabled: boolean;
 
   constructor(enabled: boolean) {
     this.enabled = enabled;
+    const gammaGeneralLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(4000),
+    });
+    const gammaEventsLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(900),
+    });
+
+    const clobBooksLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(500),
+    });
+    const sustainedClobLimiter = new RateLimiter({
+      interval: TEN_MINUTES,
+      count: scale(120_000),
+    });
+    const clobOrderPostLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(5000),
+    });
+    const clobOrderDeleteLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(5000),
+    });
+    const clobLedgerLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(900),
+    });
+    const clobDataTradesLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(500),
+    });
+    const clobBalanceLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(200),
+    });
+
+    const dataGeneralLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(1000),
+    });
+    const dataTradesLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(200),
+    });
+    const dataPositionsLimiter = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(150),
+    });
     this.buckets = {
-      "gamma:events": window10s(900),
-      "gamma:general": window10s(4000),
-      "clob:books": window10s(500),
-      "clob:order:post": burstWithSustained(5000, 120_000),
-      "clob:order:delete": burstWithSustained(5000, 120_000),
-      "clob:ledger": window10s(900),
-      "clob:data:trades": window10s(500),
-      "clob:balance": window10s(200),
-      "data:trades": window10s(200),
-      "data:positions": window10s(150),
-      "data:general": window10s(1000),
-      "pnl:general": window10s(100),
+      "gamma:events": [gammaEventsLimiter, gammaGeneralLimiter],
+      "gamma:general": [gammaGeneralLimiter],
+      "clob:books": [clobBooksLimiter],
+      "clob:order:post": [clobOrderPostLimiter, sustainedClobLimiter],
+      "clob:order:delete": [clobOrderDeleteLimiter, sustainedClobLimiter],
+      "clob:ledger": [clobLedgerLimiter],
+      "clob:data:trades": [clobDataTradesLimiter],
+      "clob:balance": [clobBalanceLimiter],
+      "data:trades": [dataTradesLimiter],
+      "data:positions": [dataPositionsLimiter],
+      "data:general": [dataGeneralLimiter],
+      "pnl:general": [pnlGeneralLimiter],
     };
   }
 
   /** Schedules `fn` through the given bucket (or runs immediately when disabled). */
-  schedule<T>(bucket: BucketName, fn: () => Promise<T>): Promise<T> {
+  async schedule<T>(bucket: BucketName, fn: () => Promise<T>): Promise<T> {
     if (!this.enabled) return fn();
-    return this.buckets[bucket].schedule(fn);
-  }
-
-  async disconnectAll(): Promise<void> {
-    await Promise.all(Object.values(this.buckets).map((b) => b.disconnect(false)));
+    await Promise.all(this.buckets[bucket].map((limiter) => limiter.acquire()));
+    return fn();
   }
 }

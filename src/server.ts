@@ -38,8 +38,8 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   registerClobPrivateRoutes(app);
   registerPnlRoutes(app);
 
-  app.addHook("onClose", async (instance) => {
-    await instance.gate.limiter.disconnectAll();
+  app.addHook("onClose", async () => {
+    console.log("Disconnecting");
   });
 
   return app;
