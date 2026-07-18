@@ -1,7 +1,7 @@
 import type { AppConfig } from "./config/schema.js";
 import { HttpProxy } from "./lib/httpProxy.js";
 import { ClobClientFactory, type ResolvedUser } from "./lib/polymarket/clientFactory.js";
-import { RateLimiterRegistry } from "./lib/rateLimiter.js";
+import { RateLimiterRegistry } from "./lib/rateLimiterRegistry.js";
 import { ProfileResolver } from "./lib/profileResolver.js";
 
 /** Shared services available to every route via `app.gate`. */

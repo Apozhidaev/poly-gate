@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { Api } from "../config/api.js";
 import { UpstreamError } from "./errors.js";
-import type { BucketName, RateLimiterRegistry } from "./rateLimiter.js";
+import type { BucketName, RateLimiterRegistry } from "./rateLimiterRegistry.js";
 import type { ProfileResolver } from "./profileResolver.js";
 import { withRetry } from "./retry.js";
 import { ProfileOverrides } from "../config/schema.js";

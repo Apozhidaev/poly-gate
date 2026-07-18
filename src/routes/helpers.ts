@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Api } from "../config/api.js";
 import { rawQueryString, sendUpstream } from "../lib/httpProxy.js";
-import type { BucketName } from "../lib/rateLimiter.js";
+import type { BucketName } from "../lib/rateLimiterRegistry.js";
 
 export type { Api };
 

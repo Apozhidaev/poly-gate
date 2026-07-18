@@ -1,7 +1,7 @@
 import { ProfileOverrides } from "../../config/schema.js";
 import type { GateContext } from "../../context.js";
 import { UpstreamError } from "../errors.js";
-import type { BucketName } from "../rateLimiter.js";
+import type { BucketName } from "../rateLimiterRegistry.js";
 import { withRetry } from "../retry.js";
 
 /**

@@ -2,7 +2,7 @@ import { type TSchema, Type } from "@sinclair/typebox";
 import { strFromU8, unzipSync } from "fflate";
 import type { FastifyInstance } from "fastify";
 import { rawQueryString, sendUpstream } from "../lib/httpProxy.js";
-import type { BucketName } from "../lib/rateLimiter.js";
+import type { BucketName } from "../lib/rateLimiterRegistry.js";
 import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
 
