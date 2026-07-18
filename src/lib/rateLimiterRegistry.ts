@@ -9,14 +9,15 @@ export type BucketName =
   | "gamma:events"
   | "gamma:general"
   | "clob:books"
+  | "clob:order"
   | "clob:order:post"
   | "clob:order:delete"
-  | "clob:ledger"
-  | "clob:data:trades"
+  | "clob:orders"
+  | "clob:trades"
   | "clob:balance"
+  | "data:general"
   | "data:trades"
   | "data:positions"
-  | "data:general"
   | "pnl:general";
 
 const TEN_SECONDS = 10_000;
@@ -25,80 +26,90 @@ const SAFETY = 0.9;
 
 const scale = (n: number) => Math.max(1, Math.floor(n * SAFETY));
 
-const pnlGeneralLimiter = new RateLimiter({
-  interval: TEN_SECONDS,
-  count: scale(100),
-});
-
 export class RateLimiterRegistry {
   private readonly buckets: Record<BucketName, RateLimiter[]>;
   private readonly enabled: boolean;
 
   constructor(enabled: boolean) {
     this.enabled = enabled;
-    const gammaGeneralLimiter = new RateLimiter({
+    const gammaGeneral = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(4000),
     });
-    const gammaEventsLimiter = new RateLimiter({
+    const gammaEvents = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(900),
     });
 
-    const clobBooksLimiter = new RateLimiter({
+    const clobGeneral = new RateLimiter({
       interval: TEN_SECONDS,
-      count: scale(500),
+      count: scale(9000),
     });
-    const sustainedClobLimiter = new RateLimiter({
+    const clobSustained = new RateLimiter({
       interval: TEN_MINUTES,
       count: scale(120_000),
     });
-    const clobOrderPostLimiter = new RateLimiter({
-      interval: TEN_SECONDS,
-      count: scale(5000),
-    });
-    const clobOrderDeleteLimiter = new RateLimiter({
-      interval: TEN_SECONDS,
-      count: scale(5000),
-    });
-    const clobLedgerLimiter = new RateLimiter({
-      interval: TEN_SECONDS,
-      count: scale(900),
-    });
-    const clobDataTradesLimiter = new RateLimiter({
+    const clobBooks = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(500),
     });
-    const clobBalanceLimiter = new RateLimiter({
+    const clobOrder = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(900),
+    });
+    const clobOrderPost = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(5000),
+    });
+    const clobOrderDelete = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(5000),
+    });
+    const clobOrders = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(500),
+    });
+    const clobTrades = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(500),
+    });
+    const clobBalance = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(200),
     });
 
-    const dataGeneralLimiter = new RateLimiter({
+    const dataGeneral = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(1000),
     });
-    const dataTradesLimiter = new RateLimiter({
+    const dataTrades = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(200),
     });
-    const dataPositionsLimiter = new RateLimiter({
+    const dataPositions = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(150),
     });
+
+    const pnlGeneral = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(100),
+    });
+    
     this.buckets = {
-      "gamma:events": [gammaEventsLimiter, gammaGeneralLimiter],
-      "gamma:general": [gammaGeneralLimiter],
-      "clob:books": [clobBooksLimiter],
-      "clob:order:post": [clobOrderPostLimiter, sustainedClobLimiter],
-      "clob:order:delete": [clobOrderDeleteLimiter, sustainedClobLimiter],
-      "clob:ledger": [clobLedgerLimiter],
-      "clob:data:trades": [clobDataTradesLimiter],
-      "clob:balance": [clobBalanceLimiter],
-      "data:trades": [dataTradesLimiter],
-      "data:positions": [dataPositionsLimiter],
-      "data:general": [dataGeneralLimiter],
-      "pnl:general": [pnlGeneralLimiter],
+      "gamma:general": [gammaGeneral],
+      "gamma:events": [gammaEvents, gammaGeneral],
+      "clob:books": [clobBooks, clobGeneral],
+      "clob:order:post": [clobOrderPost, clobSustained, clobGeneral],
+      "clob:order:delete": [clobOrderDelete, clobSustained, clobGeneral],
+      "clob:order": [clobOrder, clobGeneral],
+      "clob:trades": [clobTrades, clobGeneral],
+      "clob:balance": [clobBalance, clobGeneral],
+      "clob:orders": [clobOrders, clobGeneral],
+      "data:trades": [dataTrades, dataGeneral],
+      "data:positions": [dataPositions, dataGeneral],
+      "data:general": [dataGeneral],
+      "pnl:general": [pnlGeneral],
     };
   }
 

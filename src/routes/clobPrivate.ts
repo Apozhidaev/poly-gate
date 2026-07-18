@@ -176,8 +176,31 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
         app.gate,
         () => client.getOrder(orderID),
         {
-          bucket: "clob:ledger",
+          bucket: "clob:order",
         },
+      );
+      return reply.send(result);
+    },
+  );
+
+  app.get(
+    "/clob/open-orders",
+    {
+      ...auth,
+      schema: {
+        tags: ["clob"],
+        summary: "Get open orders",
+        description: "Returns the wallet's open orders.",
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request, reply) => {
+      const { client } = requireUser(request);
+      const result = await scheduleClobCall(
+        app.gate,
+        () =>
+          client.getOpenOrders(),
+        { bucket: "clob:orders" },
       );
       return reply.send(result);
     },
@@ -219,7 +242,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const result = await scheduleClobCall(
         app.gate,
         () => client.getTradesPaginated(params, q.next_cursor),
-        { bucket: "clob:data:trades" },
+        { bucket: "clob:trades" },
       );
       return reply.send(result);
     },
