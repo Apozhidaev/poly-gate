@@ -34,7 +34,7 @@ export function scheduleClobCall<T>(
   opts: ClobCallOptions,
 ): Promise<T> {
   const run = () =>
-    ctx.limiter.schedule(opts.bucket, async () => unwrapClobResult(await fn()));
+    ctx.limiter.run(opts.bucket, async () => unwrapClobResult(await fn()));
 
   return withRetry(run, {
     cfg: ctx.profile.resolve("clob", opts.overrides).retries,

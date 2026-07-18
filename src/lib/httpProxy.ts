@@ -57,7 +57,7 @@ export class HttpProxy {
   /** Performs the upstream request with rate limiting + retry, returning the raw response. */
   async forward(opts: ForwardOptions): Promise<NormalizedResponse> {
     const run = () =>
-      this.limiter.schedule(opts.bucket, async () => {
+      this.limiter.run(opts.bucket, async () => {
         const res = await fetch(opts.url, {
           method: opts.method,
           headers: opts.headers,

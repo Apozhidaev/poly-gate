@@ -102,8 +102,8 @@ export class RateLimiterRegistry {
     };
   }
 
-  /** Schedules `fn` through the given bucket (or runs immediately when disabled). */
-  async schedule<T>(bucket: BucketName, fn: () => Promise<T>): Promise<T> {
+  /** Runs `fn` through the given bucket (or runs immediately when disabled). */
+  async run<T>(bucket: BucketName, fn: () => Promise<T>): Promise<T> {
     if (!this.enabled) return fn();
     await Promise.all(this.buckets[bucket].map((limiter) => limiter.acquire()));
     return fn();
