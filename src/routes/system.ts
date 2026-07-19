@@ -1,7 +1,17 @@
+import { wordlist as englishWordlist } from "@scure/bip39/wordlists/english";
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
 import { toHex } from "viem";
-import { mnemonicToAccount } from "viem/accounts";
+import { generateMnemonic, mnemonicToAccount } from "viem/accounts";
+
+const generateSeedBody = Type.Object({
+  strength: Type.Optional(
+    Type.Union([Type.Literal(128), Type.Literal(256)], {
+      default: 128,
+      description: "Mnemonic entropy: 128 = 12 words, 256 = 24 words",
+    }),
+  ),
+});
 
 const deriveWalletBody = Type.Object({
   mnemonic: Type.String({ minLength: 1, description: "BIP39 seed phrase" }),
@@ -31,6 +41,27 @@ export function registerSystemRoutes(app: FastifyInstance): void {
       users: app.gate.clients.hasUsers ? app.gate.config.users.length : 0,
       uptimeSeconds: Math.round(process.uptime()),
     }),
+  );
+
+  app.post(
+    "/system/generate-seed",
+    {
+      schema: {
+        tags: ["system"],
+        summary: "Generate BIP39 seed phrase",
+        description: "Returns a randomly generated BIP39 mnemonic (English wordlist).",
+        body: generateSeedBody,
+        response: {
+          200: Type.Object({
+            mnemonic: Type.String(),
+          }),
+        },
+      },
+    },
+    (request) => {
+      const { strength = 128 } = (request.body ?? {}) as { strength?: 128 | 256 };
+      return { mnemonic: generateMnemonic(englishWordlist, strength) };
+    },
   );
 
   app.post(

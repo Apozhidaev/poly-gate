@@ -239,6 +239,7 @@ http:
 
 ### Служебные
 - `GET /system/health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)
+- `POST /system/generate-seed` — случайная BIP39 mnemonic (`strength`: 128 или 256 bit)
 - `POST /system/derive-wallet` — EVM address + private key из BIP39 `mnemonic` в body (MetaMask-style path, optional `accountIndex` / `addressIndex` / `passphrase`)
 - `GET /system/user-creds` — Bearer, отдаёт L2 creds (`apiKey`, `secret`, `passphrase`) выбранного wallet из конфига
 - `GET /docs` — Swagger UI
@@ -262,6 +263,7 @@ http:
 - `withRetry()` — общий helper повторных попыток (backoff+jitter, учёт `Retry-After`, исключение `POST /clob/order`).
 - `httpProxy.ts` — helper проксирования публичных GET с прокидыванием query/статусов (использует лимитер + `withRetry`).
 - `clientFactory.ts` + `clobClient.ts` — per-user инстансы `@polymarket/clob-client-v2` (кэш), `creds` из конфига.
+- `POST /system/generate-seed` — случайная BIP39 mnemonic (`strength` 128|256, публичный, локально viem).
 - `POST /system/derive-wallet` — EVM address + private key из BIP39 mnemonic в body (публичный, локально viem).
 - `POST /clob/derive-api-key` — получение/деривация L2-кредов по `privateKey` в body (публичный, SDK).
 

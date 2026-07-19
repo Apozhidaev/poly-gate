@@ -88,6 +88,38 @@ describe("server", () => {
     expect(res.json()).toEqual({ apiKey: "k", secret: "s", passphrase: "p" });
   });
 
+  it("generates 12-word mnemonic via POST /system/generate-seed by default", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/system/generate-seed",
+      payload: {},
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().mnemonic.split(" ")).toHaveLength(12);
+  });
+
+  it("generates 24-word mnemonic via POST /system/generate-seed with strength 256", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/system/generate-seed",
+      payload: { strength: 256 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().mnemonic.split(" ")).toHaveLength(24);
+  });
+
+  it("rejects POST /system/generate-seed with invalid strength", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/system/generate-seed",
+      payload: { strength: 192 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it("rejects POST /system/derive-wallet without mnemonic", async () => {
     app = await buildServer(makeConfig(false));
     const res = await app.inject({

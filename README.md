@@ -32,6 +32,16 @@ cp .env.example .env                  # optional
 
 Point the gateway at your config via `POLY_GATE_CONFIG` (defaults to `./config.yaml`).
 
+### Generating a seed phrase
+
+```bash
+curl -s -X POST http://localhost:8080/system/generate-seed \
+  -H 'content-type: application/json' \
+  -d '{}'
+```
+
+Optional body field: `strength` — `128` (12 words, default) or `256` (24 words). Do not log responses (they contain a seed phrase).
+
 ### Getting wallet from seed phrase
 
 ```bash
@@ -103,6 +113,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /data/holders` | Data `/holders` | – |
 | `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
 | `GET /system/health` | – (gateway meta) | – |
+| `POST /system/generate-seed` | – (local BIP39 generation) | – |
 | `POST /system/derive-wallet` | – (local BIP39 derivation) | – |
 | `GET /system/user-creds` | – (from config) | Bearer |
 
