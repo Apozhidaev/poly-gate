@@ -9,6 +9,7 @@ export type BucketName =
   | "gamma:events"
   | "gamma:general"
   | "clob:books"
+  | "clob:markets"
   | "clob:order"
   | "clob:order:post"
   | "clob:order:delete"
@@ -100,6 +101,7 @@ export class RateLimiterRegistry {
       "gamma:general": [gammaGeneral],
       "gamma:events": [gammaEvents, gammaGeneral],
       "clob:books": [clobBooks, clobGeneral],
+      "clob:markets": [clobGeneral],
       "clob:order:post": [clobOrderPost, clobSustained, clobGeneral],
       "clob:order:delete": [clobOrderDelete, clobSustained, clobGeneral],
       "clob:order": [clobOrder, clobGeneral],

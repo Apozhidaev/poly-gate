@@ -72,6 +72,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /gamma/series/{id}` | Gamma `/series/{id}` | – |
 | `GET /gamma/public-profile` | Gamma `/public-profile` | – |
 | `GET /clob/order-book` | CLOB `/book` (`token_id`) | – |
+| `GET /clob/markets/{condition_id}` | CLOB `/markets/{condition_id}` | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |

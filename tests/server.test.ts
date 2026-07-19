@@ -238,6 +238,35 @@ describe("server", () => {
     expect(seen[0]).toBe("https://gamma-api.polymarket.com/series/42?include_chat=true");
   });
 
+  it("forwards public clob market by condition_id requests 1:1 (path)", async () => {
+    const conditionId =
+      "0xb39e0d31a16bf622c459ebe01708ea08461cef4eb48c103f3ca79f42f060a5e3";
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        seen.push(url);
+        return new Response(
+          JSON.stringify({ condition_id: conditionId, accepting_orders: true }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }),
+    );
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "GET",
+      url: `/clob/markets/${conditionId}`,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ condition_id: conditionId, accepting_orders: true });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(`https://clob.polymarket.com/markets/${conditionId}`);
+  });
+
   it("forwards public clob order book requests 1:1 (path + query)", async () => {
     const seen: string[] = [];
     vi.stubGlobal(

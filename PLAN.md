@@ -142,6 +142,7 @@ rateLimits:
 | gamma:events             | 900 req/10s (listing)   | `GET /gamma/events`, `GET /gamma/markets`, `GET /gamma/events/slug/{slug}`, `GET /gamma/markets/slug/{slug}`, `GET /gamma/series/{id}` |
 | gamma:general            | 4000 req/10s            | `GET /gamma/public-profile`                  |
 | clob:books               | 500 req/10s             | `POST /clob/order-books`                     |
+| clob:markets             | 9000 req/10s (general)  | `GET /clob/markets/{condition_id}`           |
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
 | clob:order:delete        | 5000/10s, 120k/10min    | `DELETE /clob/order`                         |
 | clob:ledger              | 900 req/10s             | `GET /clob/order/{orderID}`                  |
@@ -210,6 +211,7 @@ http:
 - `GET /gamma/public-profile` → `GET gamma /public-profile?address=`
 
 ### CLOB market data (публичные, без Bearer) — префикс `/clob`
+- `GET /clob/markets/{condition_id}` → `GET clob /markets/{condition_id}`
 - `POST /clob/order-books` → `POST clob /books` (массив `token_id`) — **напрямую через `httpProxy` (undici/fetch), НЕ через SDK**
 
 ### CLOB торговля (приватные, L2 + подпись, **требуют Bearer**) — префикс `/clob`
