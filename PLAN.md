@@ -66,7 +66,7 @@ poly-gate/
         clobClient.ts        # обёртка @polymarket/clob-client-v2 (per-user)
         clientFactory.ts     # кэш клиентов по userId
     routes/
-      health.ts
+      system.ts
       events.ts              # Gamma
       profiles.ts            # Gamma
       marketData.ts          # CLOB /books (напрямую через httpProxy)
@@ -236,7 +236,7 @@ http:
 - `GET /pnl/user-pnl` → `GET pnl /user-pnl` (недокументированный; параметры `user_address`, `interval`, `fidelity` — от клиента)
 
 ### Служебные
-- `GET /health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)
+- `GET /system/health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)
 - `GET /system/creds` — Bearer, отдаёт L2 creds (`apiKey`, `secret`, `passphrase`) выбранного wallet из конфига
 - `GET /docs` — Swagger UI
 
@@ -246,7 +246,7 @@ http:
 
 ### Этап 0. Каркас проекта
 - `package.json`, `tsconfig.json`, ESLint/Prettier (или Biome), скрипты `dev/build/start/test`.
-- Fastify-инстанс, `GET /health`, graceful shutdown, pino-логирование.
+- Fastify-инстанс, `GET /system/health`, graceful shutdown, pino-логирование.
 - Swagger + Swagger UI на `/docs`.
 
 ### Этап 1. Конфиг и аутентификация

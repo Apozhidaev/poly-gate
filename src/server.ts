@@ -9,7 +9,6 @@ import { registerClobPrivateRoutes } from "./routes/clobPrivate.js";
 import { registerClobPublicRoutes } from "./routes/clobPublic.js";
 import { registerDataRoutes } from "./routes/data.js";
 import { registerGammaRoutes } from "./routes/gamma.js";
-import { registerHealthRoutes } from "./routes/health.js";
 import { registerPnlRoutes } from "./routes/pnl.js";
 import { registerSystemRoutes } from "./routes/system.js";
 
@@ -32,7 +31,6 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   await registerSwagger(app);
 
   // Routes.
-  registerHealthRoutes(app);
   registerSystemRoutes(app);
   registerGammaRoutes(app);
   registerDataRoutes(app);
@@ -41,7 +39,7 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   registerPnlRoutes(app);
 
   app.addHook("onClose", async () => {
-    console.log("Disconnecting");
+    console.log("Disconnecting...");
   });
 
   return app;

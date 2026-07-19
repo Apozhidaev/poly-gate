@@ -34,9 +34,9 @@ afterEach(async () => {
 });
 
 describe("server", () => {
-  it("serves /health without users", async () => {
+  it("serves /system/health without users", async () => {
     app = await buildServer(makeConfig(false));
-    const res = await app.inject({ method: "GET", url: "/health" });
+    const res = await app.inject({ method: "GET", url: "/system/health" });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ status: "ok", users: 0 });
   });
