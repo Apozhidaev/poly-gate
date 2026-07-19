@@ -259,6 +259,7 @@ http:
 - `withRetry()` — общий helper повторных попыток (backoff+jitter, учёт `Retry-After`, исключение `POST /clob/order`).
 - `httpProxy.ts` — helper проксирования публичных GET с прокидыванием query/статусов (использует лимитер + `withRetry`).
 - `clientFactory.ts` + `clobClient.ts` — per-user инстансы `@polymarket/clob-client-v2` (кэш), `creds` из конфига.
+- CLI `scripts/derive-wallet.ts` — EVM address + private key из BIP39 `MNEMONIC` (MetaMask-style path, optional `ACCOUNT_INDEX` / `ADDRESS_INDEX` / `PASSPHRASE`).
 - CLI `scripts/derive-creds.ts` — получение/деривация L2-кредов по `privateKey`.
 
 ### Этап 3. Публичные роуты (Gamma + Data)

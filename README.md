@@ -32,6 +32,14 @@ cp .env.example .env                  # optional
 
 Point the gateway at your config via `POLY_GATE_CONFIG` (defaults to `./config.yaml`).
 
+### Getting wallet from seed phrase
+
+```bash
+MNEMONIC="word1 word2 ... word12" npm run derive-wallet
+```
+
+Optional: `ACCOUNT_INDEX` (default `0`), `ADDRESS_INDEX` (default `0`), `PASSPHRASE` (BIP39). Path: `m/44'/60'/{accountIndex}'/0/{addressIndex}` (MetaMask-style). Do not commit or log the mnemonic or printed private key.
+
 ### Getting L2 credentials
 
 ```bash
