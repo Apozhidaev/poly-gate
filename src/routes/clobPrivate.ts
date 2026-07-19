@@ -207,7 +207,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
   );
 
   app.get(
-    "/clob/trades",
+    "/clob/user-trades",
     {
       ...auth,
       schema: {

@@ -146,7 +146,7 @@ rateLimits:
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
 | clob:order:delete        | 5000/10s, 120k/10min    | `DELETE /clob/order`                         |
 | clob:ledger              | 900 req/10s             | `GET /clob/order/{orderID}`                  |
-| clob:data:trades         | 500 req/10s             | `GET /clob/trades`                           |
+| clob:data:trades         | 500 req/10s             | `GET /clob/user-trades`                           |
 | clob:balance             | 200 req/10s             | `GET /clob/usdc-balance`, `GET /clob/token-balance` |
 | data:trades              | 200 req/10s             | `GET /data/trades`                           |
 | data:positions           | 150 req/10s             | `GET /data/positions`, `GET /data/closed-positions` |
@@ -218,7 +218,7 @@ http:
 - `POST /clob/order` → `POST clob /order` — тело высокоуровневое (`tokenID, price, size, side, orderType` + **`tickSize` и `negRisk` обязательны от клиента**), сборка+подпись на стороне шлюза. **Без retry** (риск дубликата ордера)
 - `DELETE /clob/order` → `DELETE clob /order` (тело `{ orderID }`)
 - `GET /clob/order/{orderID}` → `GET clob /data/order/{orderID}`
-- `GET /clob/trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)
+- `GET /clob/user-trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)
 - `GET /clob/usdc-balance` → CLOB balance/allowance для **USDC/collateral** (`asset_type=COLLATERAL`), без параметров.
 - `GET /clob/token-balance?token_id=...` → CLOB balance/allowance для **конкретного токена** (`asset_type=CONDITIONAL` + `token_id`). Из конфига только авторизация (`signatureType`/`funder`/`creds`). Массового «все токены» нет.
 

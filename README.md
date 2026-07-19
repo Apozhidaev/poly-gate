@@ -78,7 +78,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
-| `GET /clob/trades` | CLOB `/data/trades` | Bearer |
+| `GET /clob/user-trades` | CLOB `/data/trades` | Bearer |
 | `GET /clob/usdc-balance` | CLOB USDC/collateral balance | Bearer |
 | `GET /clob/token-balance` | CLOB conditional token balance (`token_id`) | Bearer |
 | `GET /data/positions` | Data `/positions` | – |
