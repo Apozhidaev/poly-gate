@@ -43,10 +43,12 @@ Optional: `ACCOUNT_INDEX` (default `0`), `ADDRESS_INDEX` (default `0`), `PASSPHR
 ### Getting L2 credentials
 
 ```bash
-PRIVATE_KEY=0x... npm run derive-creds
+curl -s -X POST http://localhost:8080/clob/derive-api-key \
+  -H 'content-type: application/json' \
+  -d '{"privateKey":"0x..."}'
 ```
 
-Copy the printed `apiKey/secret/passphrase` into the matching user's `creds` block.
+Optional body field: `nonce`. Copy `apiKey` / `secret` / `passphrase` into the user's `creds` block. Do not log request bodies (they contain a private key).
 
 ## Run
 
@@ -83,6 +85,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /clob/order-book` | CLOB `/book` (`token_id`) | – |
 | `GET /clob/markets/{condition_id}` | CLOB `/markets/{condition_id}` | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
+| `POST /clob/derive-api-key` | CLOB L1 `createOrDeriveApiKey` | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |

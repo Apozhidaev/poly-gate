@@ -1,5 +1,10 @@
+import { type Chain as ClobChain, ClobClient } from "@polymarket/clob-client-v2";
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
+import { viemChain } from "../lib/polymarket/clientFactory.js";
 import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
 
@@ -11,6 +16,14 @@ const orderBookQuery = Type.Object(
   },
   objOpts,
 );
+
+const deriveApiKeyBody = Type.Object({
+  privateKey: Type.String({
+    pattern: "^0x[0-9a-fA-F]+$",
+    description: "0x-prefixed secp256k1 private key (signer EOA)",
+  }),
+  nonce: Type.Optional(Type.Integer()),
+});
 
 export function registerClobPublicRoutes(app: FastifyInstance): void {
   app.get(
@@ -58,6 +71,56 @@ export function registerClobPublicRoutes(app: FastifyInstance): void {
         bucket: "clob:books",
         method: "GET",
       }),
+  );
+
+  app.post(
+    "/clob/derive-api-key",
+    {
+      schema: {
+        tags: ["clob"],
+        summary: "Derive L2 API credentials",
+        description:
+          "Calls Polymarket createOrDeriveApiKey (L1) for the given privateKey. Returns creds to paste into config.",
+        body: deriveApiKeyBody,
+        response: {
+          200: Type.Object({
+            apiKey: Type.String(),
+            secret: Type.String(),
+            passphrase: Type.String(),
+          }),
+        },
+      },
+    },
+    async (request) => {
+      const { privateKey, nonce } = request.body as {
+        privateKey: string;
+        nonce?: number;
+      };
+      const { clob, chainId } = app.gate.config.upstreams;
+
+      const account = privateKeyToAccount(privateKey as `0x${string}`);
+      const signer = createWalletClient({
+        account,
+        chain: viemChain(chainId),
+        transport: http(),
+      });
+      const client = new ClobClient({
+        host: clob,
+        chain: chainId as ClobChain,
+        signer,
+      });
+
+      const creds = await scheduleClobCall(
+        app.gate,
+        () => client.createOrDeriveApiKey(nonce),
+        { bucket: "clob:apikey", retryDisabled: true },
+      );
+      return {
+        apiKey: creds.key,
+        secret: creds.secret,
+        passphrase: creds.passphrase,
+      };
+    },
   );
 
   app.post(

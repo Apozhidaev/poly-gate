@@ -32,7 +32,7 @@ async function main(): Promise<void> {
 
   console.log("Address:", account.address);
   console.log("Private key:", privateKey);
-  console.log("\nUse privateKey in config.yaml and run npm run derive-creds if needed.");
+  console.log("\nUse privateKey in config.yaml and POST /clob/derive-api-key if you need L2 creds.");
 }
 
 main().catch((err) => {

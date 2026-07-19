@@ -93,7 +93,7 @@ poly-gate/
 - Токены хранятся в конфиге; при старте строим индекс `token → user` (сравнение в постоянное время).
 
 ### Уровень Polymarket (L2, POLY_1271)
-- Креды берём **из конфига** (заранее прописаны), API-ключи не создаём на лету, но добавим CLI-скрипт `scripts/derive-creds.ts` для первичного получения `apiKey/secret/passphrase` по `privateKey` (через `createOrDeriveApiKey`).
+- Креды берём **из конфига** (заранее прописаны); для первичной настройки — `POST /clob/derive-api-key` (`privateKey` в body, L1 `createOrDeriveApiKey`).
 - На каждый приватный CLOB-запрос SDK формирует 5 заголовков `POLY_*` (HMAC-SHA256 на `secret`), ордера подписываются с `signatureType: 3`.
 - **Про адреса (важно):**
   - `privateKey` → из него SDK/viem выводит адрес **signer** (EOA-подписант). Отдельно в конфиге его не храним.
@@ -142,6 +142,7 @@ rateLimits:
 | gamma:events             | 900 req/10s (listing)   | `GET /gamma/events`, `GET /gamma/markets`, `GET /gamma/events/slug/{slug}`, `GET /gamma/markets/slug/{slug}`, `GET /gamma/series/{id}` |
 | gamma:general            | 4000 req/10s            | `GET /gamma/public-profile`                  |
 | clob:books               | 500 req/10s             | `POST /clob/order-books`                     |
+| clob:apikey              | 100 req/10s             | `POST /clob/derive-api-key`                  |
 | clob:markets             | 9000 req/10s (general)  | `GET /clob/markets/{condition_id}`           |
 | clob:order:post          | 5000/10s, 120k/10min    | `POST /clob/order`                           |
 | clob:order:delete        | 5000/10s, 120k/10min    | `DELETE /clob/order`                         |
@@ -212,6 +213,7 @@ http:
 
 ### CLOB market data (публичные, без Bearer) — префикс `/clob`
 - `GET /clob/markets/{condition_id}` → `GET clob /markets/{condition_id}`
+- `POST /clob/derive-api-key` → CLOB L1 `createOrDeriveApiKey` (`privateKey` + optional `nonce` в body; SDK, без retry)
 - `POST /clob/order-books` → `POST clob /books` (массив `token_id`) — **напрямую через `httpProxy` (undici/fetch), НЕ через SDK**
 
 ### CLOB торговля (приватные, L2 + подпись, **требуют Bearer**) — префикс `/clob`
@@ -260,7 +262,7 @@ http:
 - `httpProxy.ts` — helper проксирования публичных GET с прокидыванием query/статусов (использует лимитер + `withRetry`).
 - `clientFactory.ts` + `clobClient.ts` — per-user инстансы `@polymarket/clob-client-v2` (кэш), `creds` из конфига.
 - CLI `scripts/derive-wallet.ts` — EVM address + private key из BIP39 `MNEMONIC` (MetaMask-style path, optional `ACCOUNT_INDEX` / `ADDRESS_INDEX` / `PASSPHRASE`).
-- CLI `scripts/derive-creds.ts` — получение/деривация L2-кредов по `privateKey`.
+- `POST /clob/derive-api-key` — получение/деривация L2-кредов по `privateKey` в body (публичный, SDK).
 
 ### Этап 3. Публичные роуты (Gamma + Data)
 - `events`, `profiles`, `dataCore` (closed-positions, activity, trades, leaderboard, holders, accounting snapshot).

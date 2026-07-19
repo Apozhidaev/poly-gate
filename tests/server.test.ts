@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { ClobClient } from "@polymarket/clob-client-v2";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { configSchema } from "../src/config/schema.js";
 import { buildServer } from "../src/server.js";
@@ -28,6 +29,7 @@ function makeConfig(withUser: boolean) {
 let app: FastifyInstance | undefined;
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   await app?.close();
   app = undefined;
@@ -84,6 +86,37 @@ describe("server", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ apiKey: "k", secret: "s", passphrase: "p" });
+  });
+
+  it("rejects POST /clob/derive-api-key without privateKey", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/clob/derive-api-key",
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("derives L2 creds via POST /clob/derive-api-key", async () => {
+    vi.spyOn(ClobClient.prototype, "createOrDeriveApiKey").mockResolvedValue({
+      key: "derived-key",
+      secret: "derived-secret",
+      passphrase: "derived-pass",
+    });
+
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/clob/derive-api-key",
+      payload: { privateKey: TEST_PK },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      apiKey: "derived-key",
+      secret: "derived-secret",
+      passphrase: "derived-pass",
+    });
   });
 
   it("forwards public gamma requests 1:1 (path + query)", async () => {

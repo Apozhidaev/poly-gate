@@ -8,7 +8,8 @@ import type { AppConfig, UserConfig } from "../../config/schema.js";
  * Resolves a viem Chain for the configured chainId. Only used so viem's http()
  * transport has a default RPC URL; no RPC calls are made for EIP-712 signing.
  */
-function viemChain(chainId: number): ViemChain {
+/** Viem chain for EIP-712 signing transport (no RPC calls required for L1 auth). */
+export function viemChain(chainId: number): ViemChain {
   if (chainId === polygon.id) return polygon;
   if (chainId === polygonAmoy.id) return polygonAmoy;
   return defineChain({

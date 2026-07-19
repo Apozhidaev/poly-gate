@@ -10,7 +10,6 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/index.js",
-    "derive-creds": "tsx scripts/derive-creds.ts",
     "derive-wallet": "tsx scripts/derive-wallet.ts",
     "test": "vitest run",
     "test:watch": "vitest",
