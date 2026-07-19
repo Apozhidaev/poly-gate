@@ -237,7 +237,7 @@ http:
 
 ### Служебные
 - `GET /system/health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)
-- `GET /system/creds` — Bearer, отдаёт L2 creds (`apiKey`, `secret`, `passphrase`) выбранного wallet из конфига
+- `GET /system/user-creds` — Bearer, отдаёт L2 creds (`apiKey`, `secret`, `passphrase`) выбранного wallet из конфига
 - `GET /docs` — Swagger UI
 
 ---

@@ -63,23 +63,23 @@ describe("server", () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it("returns 503 on GET /system/creds when no users configured", async () => {
+  it("returns 503 on GET /system/user-creds when no users configured", async () => {
     app = await buildServer(makeConfig(false));
-    const res = await app.inject({ method: "GET", url: "/system/creds" });
+    const res = await app.inject({ method: "GET", url: "/system/user-creds" });
     expect(res.statusCode).toBe(503);
   });
 
-  it("requires a bearer token on GET /system/creds", async () => {
+  it("requires a bearer token on GET /system/user-creds", async () => {
     app = await buildServer(makeConfig(true));
-    const res = await app.inject({ method: "GET", url: "/system/creds" });
+    const res = await app.inject({ method: "GET", url: "/system/user-creds" });
     expect(res.statusCode).toBe(401);
   });
 
-  it("returns L2 creds for the authenticated wallet on GET /system/creds", async () => {
+  it("returns L2 creds for the authenticated wallet on GET /system/user-creds", async () => {
     app = await buildServer(makeConfig(true));
     const res = await app.inject({
       method: "GET",
-      url: "/system/creds",
+      url: "/system/user-creds",
       headers: { authorization: "Bearer test-token-123" },
     });
     expect(res.statusCode).toBe(200);

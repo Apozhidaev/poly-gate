@@ -25,7 +25,7 @@ export function registerSystemRoutes(app: FastifyInstance): void {
   );
 
   app.get(
-    "/system/creds",
+    "/system/user-creds",
     {
       preHandler: app.requireAuth,
       schema: {
