@@ -16,7 +16,7 @@ export async function registerSwagger(app: FastifyInstance): Promise<void> {
           bearerAuth: {
             type: "http",
             scheme: "bearer",
-            description: "Gateway token (required only for private CLOB endpoints).",
+            description: "Gateway token (required for private CLOB endpoints and GET /system/creds).",
           },
         },
       },

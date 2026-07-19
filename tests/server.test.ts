@@ -63,6 +63,29 @@ describe("server", () => {
     expect(res.statusCode).toBe(401);
   });
 
+  it("returns 503 on GET /system/creds when no users configured", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({ method: "GET", url: "/system/creds" });
+    expect(res.statusCode).toBe(503);
+  });
+
+  it("requires a bearer token on GET /system/creds", async () => {
+    app = await buildServer(makeConfig(true));
+    const res = await app.inject({ method: "GET", url: "/system/creds" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns L2 creds for the authenticated wallet on GET /system/creds", async () => {
+    app = await buildServer(makeConfig(true));
+    const res = await app.inject({
+      method: "GET",
+      url: "/system/creds",
+      headers: { authorization: "Bearer test-token-123" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ apiKey: "k", secret: "s", passphrase: "p" });
+  });
+
   it("forwards public gamma requests 1:1 (path + query)", async () => {
     const seen: string[] = [];
     vi.stubGlobal(

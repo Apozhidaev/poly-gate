@@ -48,6 +48,7 @@ npm run build && npm start   # production
 ```
 
 - Health: `GET /health`
+- L2 credentials (Bearer): `GET /system/creds`
 - Swagger UI: `GET /docs`
 
 ## Configuration
@@ -88,6 +89,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /data/leaderboard` | Data `/v1/leaderboard` | – |
 | `GET /data/holders` | Data `/holders` | – |
 | `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
+| `GET /system/creds` | – (from config) | Bearer |
 
 ### Placing an order
 

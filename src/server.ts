@@ -11,6 +11,7 @@ import { registerDataRoutes } from "./routes/data.js";
 import { registerGammaRoutes } from "./routes/gamma.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerPnlRoutes } from "./routes/pnl.js";
+import { registerSystemRoutes } from "./routes/system.js";
 
 export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
@@ -32,6 +33,7 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
 
   // Routes.
   registerHealthRoutes(app);
+  registerSystemRoutes(app);
   registerGammaRoutes(app);
   registerDataRoutes(app);
   registerClobPublicRoutes(app);
