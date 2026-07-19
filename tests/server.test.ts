@@ -88,6 +88,33 @@ describe("server", () => {
     expect(res.json()).toEqual({ apiKey: "k", secret: "s", passphrase: "p" });
   });
 
+  it("rejects POST /system/derive-wallet without mnemonic", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/system/derive-wallet",
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("derives wallet via POST /system/derive-wallet", async () => {
+    app = await buildServer(makeConfig(false));
+    const res = await app.inject({
+      method: "POST",
+      url: "/system/derive-wallet",
+      payload: {
+        mnemonic: "test test test test test test test test test test test junk",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      privateKey:
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    });
+  });
+
   it("rejects POST /clob/derive-api-key without privateKey", async () => {
     app = await buildServer(makeConfig(false));
     const res = await app.inject({

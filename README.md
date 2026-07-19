@@ -35,10 +35,12 @@ Point the gateway at your config via `POLY_GATE_CONFIG` (defaults to `./config.y
 ### Getting wallet from seed phrase
 
 ```bash
-MNEMONIC="word1 word2 ... word12" npm run derive-wallet
+curl -s -X POST http://localhost:8080/system/derive-wallet \
+  -H 'content-type: application/json' \
+  -d '{"mnemonic":"word1 word2 ... word12"}'
 ```
 
-Optional: `ACCOUNT_INDEX` (default `0`), `ADDRESS_INDEX` (default `0`), `PASSPHRASE` (BIP39). Path: `m/44'/60'/{accountIndex}'/0/{addressIndex}` (MetaMask-style). Do not commit or log the mnemonic or printed private key.
+Optional body fields: `accountIndex` (default `0`), `addressIndex` (default `0`), `passphrase`. Path: `m/44'/60'/{accountIndex}'/0/{addressIndex}` (MetaMask-style). Do not log request bodies (they contain a seed phrase).
 
 ### Getting L2 credentials
 
@@ -101,6 +103,7 @@ See [`config.example.yaml`](./config.example.yaml). Key points:
 | `GET /data/holders` | Data `/holders` | – |
 | `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
 | `GET /system/health` | – (gateway meta) | – |
+| `POST /system/derive-wallet` | – (local BIP39 derivation) | – |
 | `GET /system/user-creds` | – (from config) | Bearer |
 
 ### Placing an order
