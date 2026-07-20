@@ -43,6 +43,3 @@ http:
   timeoutMs: 120000
 
 logLevel: info
-
-# Wallet credentials live in users.yaml (see users.example.yaml).
-# Set POLY_GATE_USERS=./users.yaml to load them; omit for public-only mode.
