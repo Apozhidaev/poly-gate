@@ -1,5 +1,8 @@
+import { loadDotEnv } from "./loadEnv.js";
 import { loadConfig, redactConfig } from "./config/index.js";
 import { buildServer } from "./server.js";
+
+loadDotEnv();
 
 async function main(): Promise<void> {
   const config = loadConfig();

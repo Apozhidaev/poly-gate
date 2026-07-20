@@ -43,7 +43,7 @@ function loadUsersFile(path: string): UserConfig[] {
 }
 
 export function loadConfig(explicitPath?: string, explicitUsersPath?: string): AppConfig {
-  const path = resolve(explicitPath ?? process.env[CONFIG_ENV_VAR] ?? DEFAULT_CONFIG_PATH);
+  const path = resolve((explicitPath ?? process.env[CONFIG_ENV_VAR] ?? DEFAULT_CONFIG_PATH).trim());
   const parsed = readYamlFile(path, "config file");
   const result = configSchema.safeParse(parsed ?? {});
   if (!result.success) {
@@ -51,7 +51,7 @@ export function loadConfig(explicitPath?: string, explicitUsersPath?: string): A
   }
 
   const usersPath = explicitUsersPath ?? process.env[USERS_ENV_VAR];
-  const users = usersPath ? loadUsersFile(resolve(usersPath)) : [];
+  const users = usersPath ? loadUsersFile(resolve(usersPath.trim())) : [];
   const config: AppConfig = { ...result.data, users };
 
   assertUniqueUsers(config);

@@ -28,8 +28,10 @@ It also handles **L2 authentication (POLY_1271, `signatureType: 3`)** on your be
 npm install
 cp config.example.yaml config.yaml   # then edit
 cp users.example.yaml users.yaml     # optional — wallet credentials
-cp .env.example .env                  # optional
+cp .env.example .env                  # optional — POLY_GATE_CONFIG / POLY_GATE_USERS
 ```
+
+`.env` is loaded automatically at startup (when the file exists). Config paths may be absolute or relative to the process working directory. Existing shell env vars take precedence.
 
 Point the gateway at your config via `POLY_GATE_CONFIG` (defaults to `./config.yaml`). Wallet credentials load from `POLY_GATE_USERS` when set; leave it unset for public-only mode.
 
