@@ -44,22 +44,5 @@ http:
 
 logLevel: info
 
-# users is OPTIONAL. With no users the service still serves all public endpoints
-# (Gamma, Data, CLOB market data). Only private CLOB endpoints require a user.
-users: []
-# users:
-#   - id: main
-#     # Gateway token: sent by clients as `Authorization: Bearer <token>`.
-#     # Uniquely identifies + selects this wallet. Use a strong random value.
-#     token: "REPLACE_WITH_STRONG_TOKEN"
-#     # Private key of the signer (EOA). The signer address is derived from it.
-#     privateKey: "0x..."
-#     # Polymarket proxy wallet (deposit wallet / funder). NOT derivable from privateKey.
-#     funder: "0x..."
-#     # Signature type: 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271 (default).
-#     signatureType: 3
-#     # L2 API credentials. Generate with POST /clob/derive-api-key.
-#     creds:
-#       apiKey: "..."
-#       secret: "..."
-#       passphrase: "..."
+# Wallet credentials live in users.yaml (see users.example.yaml).
+# Set POLY_GATE_USERS=./users.yaml to load them; omit for public-only mode.

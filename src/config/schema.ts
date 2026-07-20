@@ -24,6 +24,8 @@ export const userSchema = z.object({
   creds: credsSchema,
 });
 
+export const usersSchema = z.array(userSchema);
+
 const retryOverrideSchema = z.object({
   attempts: z.number().int().min(0).optional(),
   maxElapsedMs: z.number().int().min(0).optional(),
@@ -55,8 +57,6 @@ export const configSchema = z.object({
       pnl: "https://user-pnl-api.polymarket.com",
       chainId: 137,
     }),
-  // Optional: the service must boot and serve public endpoints even without any users.
-  users: z.array(userSchema).default([]),
   rateLimits: z
     .object({
       enabled: z.boolean().default(true),
@@ -108,8 +108,9 @@ export const configSchema = z.object({
     .default("info"),
 });
 
-export type AppConfig = z.infer<typeof configSchema>;
+export type BaseConfig = z.infer<typeof configSchema>;
 export type UserConfig = z.infer<typeof userSchema>;
+export type AppConfig = BaseConfig & { users: UserConfig[] };
 export type RetryConfig = AppConfig["retries"];
 export type ProfileConfig = { retries: RetryConfig };
 export type ProfileOverrides = z.infer<typeof apiProfileSchema>;

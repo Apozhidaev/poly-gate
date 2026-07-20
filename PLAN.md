@@ -102,7 +102,6 @@ poly-gate/
 - **Параметры эндпоинтов не трогаем и не автозаполняем.** Все path/query/body параметры — ровно как у Polymarket и приходят от клиента (в т.ч. `maker_address`, `user`, `address`, `token_id` и т.д.). Никакой автоподстановки адресов из конфига в параметры запросов нет.
 
 ### Пример конфига (`config.example.yaml`)
-`users` — опциональный массив (может быть пустым/отсутствовать). Без пользователей работают только публичные эндпоинты.
 ```yaml
 server:
   host: 0.0.0.0
@@ -113,20 +112,23 @@ upstreams:
   clob:  https://clob.polymarket.com
   pnl:   https://user-pnl-api.polymarket.com
   chainId: 137
-# users опционален: можно оставить пустым/убрать — тогда доступны только публичные эндпоинты
-users:
-  - id: main
-    token: "REPLACE_WITH_STRONG_TOKEN"   # токен для доступа к нашему шлюзу
-    privateKey: "0x..."                   # приватный ключ (из него выводится signer/EOA)
-    funder: "0x..."                       # proxy wallet пользователя Polymarket (НЕ выводится из privateKey)
-    signatureType: 3                      # POLY_1271
-    creds:
-      apiKey: "..."
-      secret: "..."
-      passphrase: "..."
 rateLimits:
   enabled: true
   # опциональные оверрайды; по умолчанию берём значения из доков Polymarket
+```
+
+### Кошельки (`users.example.yaml`)
+Отдельный файл — корневой YAML-массив. Путь через `POLY_GATE_USERS`; если unset — публичный режим без кошельков.
+```yaml
+- id: main
+  token: "REPLACE_WITH_STRONG_TOKEN"   # токен для доступа к нашему шлюзу
+  privateKey: "0x..."                   # приватный ключ (из него выводится signer/EOA)
+  funder: "0x..."                       # proxy wallet пользователя Polymarket (НЕ выводится из privateKey)
+  signatureType: 3                      # POLY_1271
+  creds:
+    apiKey: "..."
+    secret: "..."
+    passphrase: "..."
 ```
 
 ---
@@ -254,7 +256,7 @@ http:
 - Swagger + Swagger UI на `/docs`.
 
 ### Этап 1. Конфиг и аутентификация
-- zod-схема конфига (`users` опционален, допускается пустой список), загрузчик (`POLY_GATE_CONFIG` → YAML), маскирование секретов в логах.
+- zod-схема конфига (базовый YAML + отдельный `users.yaml` через `POLY_GATE_USERS`), загрузчик (`POLY_GATE_CONFIG` → YAML), маскирование секретов в логах.
 - Плагин `auth`: применяется только к приватным CLOB-роутам; Bearer-токен → индекс `token → user`, декоратор `request.polyUser`. Если пользователей нет — приватные роуты отвечают понятной ошибкой авторизации, сервис не падает.
 - Единый `errorHandler` (маппинг upstream-ошибок → унифицированный JSON `{ error, code?, retryAfter? }`).
 

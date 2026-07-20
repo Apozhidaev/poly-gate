@@ -1,0 +1,20 @@
+# Poly-Gate wallet credentials example.
+# Copy to users.yaml and set POLY_GATE_USERS=./users.yaml (or point at this file).
+# Root YAML array; empty list or omit file (unset POLY_GATE_USERS) = public-only mode.
+
+[]
+# - id: main
+#   # Gateway token: sent by clients as `Authorization: Bearer <token>`.
+#   # Uniquely identifies + selects this wallet. Use a strong random value.
+#   token: "REPLACE_WITH_STRONG_TOKEN"
+#   # Private key of the signer (EOA). The signer address is derived from it.
+#   privateKey: "0x..."
+#   # Polymarket proxy wallet (deposit wallet / funder). NOT derivable from privateKey.
+#   funder: "0x..."
+#   # Signature type: 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271 (default).
+#   signatureType: 3
+#   # L2 API credentials. Generate with POST /clob/derive-api-key.
+#   creds:
+#     apiKey: "..."
+#     secret: "..."
+#     passphrase: "..."

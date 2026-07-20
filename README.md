@@ -27,10 +27,11 @@ It also handles **L2 authentication (POLY_1271, `signatureType: 3`)** on your be
 ```bash
 npm install
 cp config.example.yaml config.yaml   # then edit
+cp users.example.yaml users.yaml     # optional — wallet credentials
 cp .env.example .env                  # optional
 ```
 
-Point the gateway at your config via `POLY_GATE_CONFIG` (defaults to `./config.yaml`).
+Point the gateway at your config via `POLY_GATE_CONFIG` (defaults to `./config.yaml`). Wallet credentials load from `POLY_GATE_USERS` when set; leave it unset for public-only mode.
 
 ### Generating a seed phrase
 
@@ -60,7 +61,7 @@ curl -s -X POST http://localhost:8080/clob/derive-api-key \
   -d '{"privateKey":"0x..."}'
 ```
 
-Optional body field: `nonce`. Copy `apiKey` / `secret` / `passphrase` into the user's `creds` block. Do not log request bodies (they contain a private key).
+Optional body field: `nonce`. Copy `apiKey` / `secret` / `passphrase` into the user's `creds` block in `users.yaml`. Do not log request bodies (they contain a private key).
 
 ## Run
 
@@ -75,10 +76,15 @@ npm run build && npm start   # production
 
 ## Configuration
 
-See [`config.example.yaml`](./config.example.yaml). Key points:
+Two YAML files:
 
-- `users` is **optional**. Without users only public endpoints work.
-- Per user: `token` (gateway bearer), `privateKey` (signer/EOA is derived from it), `funder` (Polymarket **proxy wallet**, not derivable), `signatureType: 3`, and `creds`.
+- [`config.example.yaml`](./config.example.yaml) — server, upstreams, rate limits, retries, logging.
+- [`users.example.yaml`](./users.example.yaml) — wallet credentials (secrets); copy to `users.yaml` and set `POLY_GATE_USERS=./users.yaml`.
+
+Key points:
+
+- **`POLY_GATE_USERS` unset** → no wallets loaded; only public endpoints work.
+- Per user in `users.yaml`: `token` (gateway bearer), `privateKey` (signer/EOA is derived from it), `funder` (Polymarket **proxy wallet**, not derivable), `signatureType: 3`, and `creds`.
 - From the config we use **only authorization data** — endpoint params are never auto-injected.
 - **Retries:** global `retries.*` applies to all APIs; override `maxElapsedMs` / `attempts` per API via `profiles.<api>.retries`. `http.timeoutMs` is shared across all APIs.
 

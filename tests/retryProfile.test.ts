@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { configSchema } from "../src/config/schema.js";
+import { configSchema, type AppConfig } from "../src/config/schema.js";
 import { ProfileResolver } from "../src/lib/profileResolver.js";
 
-function baseConfig(overrides: Record<string, unknown> = {}) {
-  return configSchema.parse(overrides);
+function baseConfig(overrides: Record<string, unknown> = {}): AppConfig {
+  return { ...configSchema.parse(overrides), users: [] };
 }
 
 describe("ProfileResolver", () => {

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { ClobClient } from "@polymarket/clob-client-v2";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AppConfig } from "../src/config/schema.js";
 import { configSchema } from "../src/config/schema.js";
 import { buildServer } from "../src/server.js";
 
@@ -8,8 +9,9 @@ import { buildServer } from "../src/server.js";
 const TEST_PK = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 const TEST_FUNDER = `0x${"b".repeat(40)}`;
 
-function makeConfig(withUser: boolean) {
-  return configSchema.parse({
+function makeConfig(withUser: boolean): AppConfig {
+  return {
+    ...configSchema.parse({ logLevel: "silent" }),
     users: withUser
       ? [
           {
@@ -22,8 +24,7 @@ function makeConfig(withUser: boolean) {
           },
         ]
       : [],
-    logLevel: "silent",
-  });
+  };
 }
 
 let app: FastifyInstance | undefined;
