@@ -243,7 +243,7 @@ http:
 - `GET /system/health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)
 - `POST /system/generate-seed` — случайная BIP39 mnemonic (`strength`: 128 или 256 bit)
 - `POST /system/derive-wallet` — EVM address + private key из BIP39 `mnemonic` в body (MetaMask-style path, optional `accountIndex` / `addressIndex` / `passphrase`)
-- `GET /system/user-creds` — Bearer, отдаёт L2 creds (`apiKey`, `secret`, `passphrase`) выбранного wallet из конфига
+- `GET /system/user-creds` — Bearer, вызывает Polymarket `createOrDeriveApiKey` для wallet выбранного токеном; возвращает live L2 creds (`apiKey`, `secret`, `passphrase`)
 - `GET /docs` — Swagger UI
 
 ---

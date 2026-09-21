@@ -123,7 +123,7 @@ Key points:
 | `GET /system/health` | – (gateway meta) | – |
 | `POST /system/generate-seed` | – (local BIP39 generation) | – |
 | `POST /system/derive-wallet` | – (local BIP39 derivation) | – |
-| `GET /system/user-creds` | – (from config) | Bearer |
+| `GET /system/user-creds` | CLOB L1 `createOrDeriveApiKey` | Bearer |
 
 ### Placing an order
 

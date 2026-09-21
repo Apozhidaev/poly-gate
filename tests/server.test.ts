@@ -79,6 +79,12 @@ describe("server", () => {
   });
 
   it("returns L2 creds for the authenticated wallet on GET /system/user-creds", async () => {
+    vi.spyOn(ClobClient.prototype, "createOrDeriveApiKey").mockResolvedValue({
+      key: "live-key",
+      secret: "live-secret",
+      passphrase: "live-pass",
+    });
+
     app = await buildServer(makeConfig(true));
     const res = await app.inject({
       method: "GET",
@@ -86,7 +92,11 @@ describe("server", () => {
       headers: { authorization: "Bearer test-token-123" },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ apiKey: "k", secret: "s", passphrase: "p" });
+    expect(res.json()).toEqual({
+      apiKey: "live-key",
+      secret: "live-secret",
+      passphrase: "live-pass",
+    });
   });
 
   it("generates 12-word mnemonic via POST /system/generate-seed by default", async () => {
