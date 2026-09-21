@@ -136,14 +136,11 @@ Key points:
   "side": "BUY",
   "orderType": "GTC",
   "price": 0.65,
-  "size": 100,
-  "tickSize": "0.01",
-  "negRisk": false
+  "size": 100
 }
 ```
 
-`tickSize` and `negRisk` are accepted for API compatibility but not forwarded — the unified SDK resolves them. For `FOK`/`FAK` provide `amount` instead of `size`.
-
+Tick size and neg-risk are resolved by the SDK. For `FOK`/`FAK` provide `amount` instead of `size`.
 ### Balances
 
 - USDC/collateral: `GET /clob/usdc-balance`

@@ -10,7 +10,6 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
 import { StringEnum } from "../lib/typebox.js";
 
-const TICK_SIZES = ["0.1", "0.01", "0.001", "0.0001"] as const;
 const USDC_DIGITS = 6;
 
 const orderBodySchema = Type.Object({
@@ -19,9 +18,6 @@ const orderBodySchema = Type.Object({
   orderType: Type.Optional(
     StringEnum(["GTC", "GTD", "FOK", "FAK"], { default: "GTC" }),
   ),
-  // Accepted for API compatibility; unified SDK resolves tick size / neg-risk itself.
-  tickSize: StringEnum(TICK_SIZES),
-  negRisk: Type.Boolean(),
   price: Type.Optional(
     Type.Number({ description: "Required for GTC/GTD; optional for FOK/FAK" }),
   ),
@@ -42,8 +38,6 @@ interface OrderBody {
   tokenID: string;
   side: "BUY" | "SELL";
   orderType?: "GTC" | "GTD" | "FOK" | "FAK";
-  tickSize: (typeof TICK_SIZES)[number];
-  negRisk: boolean;
   price?: number;
   size?: number;
   amount?: number;
