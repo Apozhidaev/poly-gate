@@ -6,7 +6,7 @@
 
 1. **Единая точка входа** для трёх API Polymarket (Gamma, Data, CLOB) + приватная торговля.
 2. **Централизованный контроль лимитов** запросов к Polymarket (см. Rate Limits) — чтобы не упираться в throttling Cloudflare со стороны всех наших процессов сразу.
-3. **Своя авторизация L2 (POLY_1271, `signatureType: 3`)**: приватные ключи/креды кошельков хранятся в конфиге на нашей стороне, наружу отдаём один свой токен доступа. Поддержка нескольких кошельков (нескольких пользователей).
+3. **Своя авторизация L2**: приватные ключи кошельков хранятся в конфиге на нашей стороне; `@polymarket/client` (`createSecureClient`) сам деривит CLOB credentials при старте. Наружу отдаём один свой токен доступа. Поддержка нескольких кошельков (нескольких пользователей).
 
 ## Стек
 
@@ -15,15 +15,15 @@
 - **@fastify/swagger** + **@fastify/swagger-ui** — OpenAPI-документация
 - **TypeBox** (`@sinclair/typebox` через `@fastify/type-provider-typebox`) — схемы валидации + автогенерация Swagger из них
 - **zod** — валидация конфигурационного файла
-- **@polymarket/clob-client-v2** + **viem** — подпись ордеров, L1/L2-аутентификация CLOB, balance/allowance (переиспользуем официальный SDK вместо копирования подписи вручную)
+- **@polymarket/client** + **viem** — `createSecureClient` для private CLOB (подпись ордеров, L2 credentials, balance/allowance)
 - **undici** (встроенный `fetch`) — проксирование публичных Gamma/Data запросов
 - **Bottleneck** — токен-бакеты для контроля исходящих лимитов (in-memory, один инстанс)
 - **pino** (встроен в Fastify) — логирование
 - **vitest** — тесты
 
-> SDK Polymarket (`@polymarket/clob-client-v2`) используем **только для приватных CLOB-эндпоинтов** (L2/подпись, ордера, `balance-allowance`). Все публичные запросы — Gamma, Data и **CLOB market data (`/books`)** — идут напрямую через `httpProxy` (undici/fetch), без SDK.
+> SDK Polymarket (`@polymarket/client`) используем **только для приватных CLOB-эндпоинтов** (L2/подпись, ордера, `balance-allowance`). Все публичные запросы — Gamma, Data и **CLOB market data (`/books`)** — идут напрямую через `httpProxy` (undici/fetch), без SDK.
 
-> **Работа без кредов:** сервис обязан стартовать и обслуживать публичные эндпоинты даже если в конфиге нет ни одного пользователя с `privateKey/creds`. Отсутствие кредов НЕ является фатальной ошибкой — приватные роуты в этом случае просто вернут понятную ошибку авторизации.
+> **Работа без кошельков:** сервис обязан стартовать и обслуживать публичные эндпоинты даже если в конфиге нет ни одного пользователя с `privateKey`/`funder`. Отсутствие кошельков НЕ является фатальной ошибкой — приватные роуты в этом случае просто вернут понятную ошибку авторизации.
 
 ---
 
@@ -33,11 +33,11 @@
 Клиент ──(Bearer: наш токен)──▶ Poly-Gate ──(rate limiter)──▶ Gamma API
                                     │                       ├─▶ Data API
                                     │                       └─▶ CLOB API (L2 подпись на лету)
-                                    └─ config: users[] (privateKey, creds, funder, ...)
+                                    └─ config: users[] (privateKey, funder, token, ...)
 ```
 
 Слои:
-- **config** — загрузка + валидация YAML/JSON конфига (zod). Список пользователей-кошельков **опционален**: сервис стартует и без кредов (только публичные эндпоинты).
+- **config** — загрузка + валидация YAML/JSON конфига (zod). Список пользователей-кошельков **опционален**: сервис стартует и без кошельков (только публичные эндпоинты).
 - **plugins** — `auth` (проверка нашего токена + выбор кошелька), `swagger`, `rateLimit`, `errorHandler`.
 - **lib/rateLimiter** — реестр бакетов Bottleneck по группам лимитов Polymarket.
 - **lib/polymarket** — `gammaClient`, `dataClient`, `clobClient` (обёртка SDK, кэш инстансов на пользователя).
@@ -63,8 +63,7 @@ poly-gate/
       polymarket/
         gammaClient.ts
         dataClient.ts
-        clobClient.ts        # обёртка @polymarket/clob-client-v2 (per-user)
-        clientFactory.ts     # кэш клиентов по userId
+        clientFactory.ts     # кэш SecureClient по userId (createSecureClient)
     routes/
       system.ts
       events.ts              # Gamma
@@ -92,13 +91,13 @@ poly-gate/
 - **Модель:** у каждого пользователя-кошелька свой токен. Токен одновременно (а) аутентифицирует вызов и (б) однозначно выбирает кошелёк — заголовок `X-Poly-User` не нужен.
 - Токены хранятся в конфиге; при старте строим индекс `token → user` (сравнение в постоянное время).
 
-### Уровень Polymarket (L2, POLY_1271)
-- Креды берём **из конфига** (заранее прописаны); для первичной настройки — `POST /clob/derive-api-key` (`privateKey` в body, L1 `createOrDeriveApiKey`).
-- На каждый приватный CLOB-запрос SDK формирует 5 заголовков `POLY_*` (HMAC-SHA256 на `secret`), ордера подписываются с `signatureType: 3`.
+### Уровень Polymarket (L2 via SecureClient)
+- L2 credentials деривятся SDK при `createSecureClient({ wallet: funder, signer })` на старте; в `users.yaml` их не храним. Для отладки — `POST /clob/derive-api-key` / `GET /system/user-creds`.
+- На каждый приватный CLOB-запрос SDK формирует L2-заголовки; ордера через `placeLimitOrder` / `placeMarketOrder`.
 - **Про адреса (важно):**
-  - `privateKey` → из него SDK/viem выводит адрес **signer** (EOA-подписант). Отдельно в конфиге его не храним.
-  - `funder` — это **proxy wallet** пользователя Polymarket (адрес, на котором лежат средства), НЕ выводится из `privateKey`. Передаётся в `ClobClient({ funder, signatureType: 3 })`.
-- **Из конфига берём ТОЛЬКО данные для авторизации** (`privateKey`, `funder`, `signatureType`, `creds`) — они используются для инициализации CLOB-клиента и подписи L2/ордеров.
+  - `privateKey` → signer (EOA) через `@polymarket/client/viem` `privateKey(...)`.
+  - `funder` — deposit / proxy wallet пользователя Polymarket (адрес, на котором лежат средства), НЕ выводится из `privateKey`. Передаётся как `wallet` в `createSecureClient`.
+- **Из конфига берём ТОЛЬКО данные для авторизации** (`privateKey`, `funder`, `token`) — они используются для инициализации SecureClient и подписи ордеров.
 - **Параметры эндпоинтов не трогаем и не автозаполняем.** Все path/query/body параметры — ровно как у Polymarket и приходят от клиента (в т.ч. `maker_address`, `user`, `address`, `token_id` и т.д.). Никакой автоподстановки адресов из конфига в параметры запросов нет.
 
 ### Пример конфига (`config.example.yaml`)
@@ -123,12 +122,7 @@ rateLimits:
 - id: main
   token: "REPLACE_WITH_STRONG_TOKEN"   # токен для доступа к нашему шлюзу
   privateKey: "0x..."                   # приватный ключ (из него выводится signer/EOA)
-  funder: "0x..."                       # proxy wallet пользователя Polymarket (НЕ выводится из privateKey)
-  signatureType: 3                      # POLY_1271
-  creds:
-    apiKey: "..."
-    secret: "..."
-    passphrase: "..."
+  funder: "0x..."                       # deposit / proxy wallet (SDK wallet)
 ```
 
 ---
@@ -215,7 +209,7 @@ http:
 
 ### CLOB market data (публичные, без Bearer) — префикс `/clob`
 - `GET /clob/markets/{condition_id}` → `GET clob /markets/{condition_id}`
-- `POST /clob/derive-api-key` → CLOB L1 `createOrDeriveApiKey` (`privateKey` + optional `nonce` в body; SDK, без retry)
+- `POST /clob/derive-api-key` → ephemeral `createSecureClient` → `credentials` (`privateKey` + optional `nonce` в body; без retry)
 - `POST /clob/order-books` → `POST clob /books` (массив `token_id`) — **напрямую через `httpProxy` (undici/fetch), НЕ через SDK**
 
 ### CLOB торговля (приватные, L2 + подпись, **требуют Bearer**) — префикс `/clob`
@@ -224,7 +218,7 @@ http:
 - `GET /clob/order/{orderID}` → `GET clob /data/order/{orderID}`
 - `GET /clob/user-trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)
 - `GET /clob/usdc-balance` → CLOB balance/allowance для **USDC/collateral** (`asset_type=COLLATERAL`), без параметров.
-- `GET /clob/token-balance?token_id=...` → CLOB balance/allowance для **конкретного токена** (`asset_type=CONDITIONAL` + `token_id`). Из конфига только авторизация (`signatureType`/`funder`/`creds`). Массового «все токены» нет.
+- `GET /clob/token-balance?token_id=...` → CLOB balance/allowance для **конкретного токена** (`assetType=CONDITIONAL` + `tokenId`). Из конфига только авторизация (`privateKey`/`funder`). Массового «все токены» нет.
 
 ### Data API (публичные, без Bearer) — префикс `/data`
 Все параметры (`user`, `market`, `address` и т.д.) — ровно как у Polymarket, от клиента.
@@ -243,7 +237,7 @@ http:
 - `GET /system/health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)
 - `POST /system/generate-seed` — случайная BIP39 mnemonic (`strength`: 128 или 256 bit)
 - `POST /system/derive-wallet` — EVM address + private key из BIP39 `mnemonic` в body (MetaMask-style path, optional `accountIndex` / `addressIndex` / `passphrase`)
-- `GET /system/user-creds` — Bearer, вызывает Polymarket `createOrDeriveApiKey` для wallet выбранного токеном; возвращает live L2 creds (`apiKey`, `secret`, `passphrase`)
+- `GET /system/user-creds` — Bearer, возвращает `SecureClient.credentials` для wallet выбранного токеном (`apiKey`, `secret`, `passphrase`)
 - `GET /docs` — Swagger UI
 
 ---
@@ -264,7 +258,7 @@ http:
 - `lib/rateLimiter.ts` — бакеты Bottleneck по таблице выше.
 - `withRetry()` — общий helper повторных попыток (backoff+jitter, учёт `Retry-After`, исключение `POST /clob/order`).
 - `httpProxy.ts` — helper проксирования публичных GET с прокидыванием query/статусов (использует лимитер + `withRetry`).
-- `clientFactory.ts` + `clobClient.ts` — per-user инстансы `@polymarket/clob-client-v2` (кэш), `creds` из конфига.
+- `clientFactory.ts` — per-user `SecureClient` через `createSecureClient` (async boot, кэш по token/id).
 - `POST /system/generate-seed` — случайная BIP39 mnemonic (`strength` 128|256, публичный, локально viem).
 - `POST /system/derive-wallet` — EVM address + private key из BIP39 mnemonic в body (публичный, локально viem).
 - `POST /clob/derive-api-key` — получение/деривация L2-кредов по `privateKey` в body (публичный, SDK).
@@ -297,5 +291,5 @@ http:
 8. **Параметры эндпоинтов** — ✅ решено: все path/query/body параметры ровно как у Polymarket и приходят от клиента; из конфига берётся только информация для авторизации (никакой автоподстановки адресов).
 9. **Bearer только где нужно** — ✅ решено: наш токен требуется лишь на приватных CLOB-эндпоинтах (для выбора кошелька-конфига под L2-подпись); публичные Gamma/Data/CLOB market data — без Bearer.
 10. **CLOB `/books` напрямую** — ✅ решено: публичный `POST /clob/order-books` идёт через `httpProxy` (undici/fetch), не через SDK. SDK — только приватные CLOB-эндпоинты.
-11. **Работа без кредов** — ✅ решено: `users` опционален; сервис стартует и обслуживает публичные эндпоинты без `privateKey/creds`. Приватные роуты без настроенного кошелька возвращают ошибку авторизации, но не роняют сервис.
+11. **Работа без кошельков** — ✅ решено: `users` опционален; сервис стартует и обслуживает публичные эндпоинты без `privateKey`/`funder`. Приватные роуты без настроенного кошелька возвращают ошибку авторизации, но не роняют сервис.
 ```

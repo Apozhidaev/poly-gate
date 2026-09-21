@@ -7,7 +7,7 @@ It solves two problems:
 1. **Single entry point** for the three Polymarket APIs.
 2. **Centralized outbound rate limiting** so all your processes share one budget and don't hit Cloudflare throttling.
 
-It also handles **L2 authentication (POLY_1271, `signatureType: 3`)** on your behalf: wallet keys/creds live in a config file, clients authenticate to the gateway with a single bearer token, and multiple wallets are supported.
+It also handles **L2 authentication** on your behalf via `@polymarket/client` (`createSecureClient`): wallet keys live in a config file, the SDK derives CLOB credentials at boot, clients authenticate to the gateway with a single bearer token, and multiple wallets are supported.
 
 ## Features
 
@@ -63,7 +63,7 @@ curl -s -X POST http://localhost:8080/clob/derive-api-key \
   -d '{"privateKey":"0x..."}'
 ```
 
-Optional body field: `nonce`. Copy `apiKey` / `secret` / `passphrase` into the user's `creds` block in `users.yaml`. Do not log request bodies (they contain a private key).
+Optional body field: `nonce`. Returns `apiKey` / `secret` / `passphrase` for inspection or external tools. **You do not need to paste them into `users.yaml`** — the gateway derives credentials automatically at boot via `createSecureClient`. Do not log request bodies (they contain a private key).
 
 ## Run
 
@@ -86,7 +86,8 @@ Two YAML files:
 Key points:
 
 - **`POLY_GATE_USERS` unset** → no wallets loaded; only public endpoints work.
-- Per user in `users.yaml`: `token` (gateway bearer), `privateKey` (signer/EOA is derived from it), `funder` (Polymarket **proxy wallet**, not derivable), `signatureType: 3`, and `creds`.
+- Per user in `users.yaml`: `token` (gateway bearer), `privateKey` (signer/EOA is derived from it), `funder` (Polymarket **deposit / proxy wallet**, passed as SDK `wallet`).
+- L2 API credentials are derived by `@polymarket/client` at boot — not stored in config.
 - From the config we use **only authorization data** — endpoint params are never auto-injected.
 - **Retries:** global `retries.*` applies to all APIs; override `maxElapsedMs` / `attempts` per API via `profiles.<api>.retries`. `http.timeoutMs` is shared across all APIs.
 
@@ -105,7 +106,7 @@ Key points:
 | `GET /clob/order-book` | CLOB `/book` (`token_id`) | – |
 | `GET /clob/markets/{condition_id}` | CLOB `/markets/{condition_id}` | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
-| `POST /clob/derive-api-key` | CLOB L1 `createOrDeriveApiKey` | – |
+| `POST /clob/derive-api-key` | ephemeral `createSecureClient` → credentials | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
@@ -123,7 +124,7 @@ Key points:
 | `GET /system/health` | – (gateway meta) | – |
 | `POST /system/generate-seed` | – (local BIP39 generation) | – |
 | `POST /system/derive-wallet` | – (local BIP39 derivation) | – |
-| `GET /system/user-creds` | CLOB L1 `createOrDeriveApiKey` | Bearer |
+| `GET /system/user-creds` | SecureClient `credentials` | Bearer |
 
 ### Placing an order
 
@@ -141,7 +142,7 @@ Key points:
 }
 ```
 
-`tickSize` and `negRisk` are required. For `FOK`/`FAK` provide `amount` instead of `size`.
+`tickSize` and `negRisk` are accepted for API compatibility but not forwarded — the unified SDK resolves them. For `FOK`/`FAK` provide `amount` instead of `size`.
 
 ### Balances
 
@@ -173,4 +174,4 @@ npm run typecheck
 ## Notes
 
 - Runs as a single instance (in-memory limiter; no horizontal scaling).
-- Uses `@polymarket/clob-client-v2` for private CLOB only; public traffic goes directly through `fetch`.
+- Uses `@polymarket/client` (`createSecureClient`) for private CLOB only; public traffic goes directly through `fetch`.

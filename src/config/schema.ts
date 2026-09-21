@@ -7,21 +7,12 @@ const address = z
   .string()
   .regex(/^0x[0-9a-fA-F]{40}$/, "must be a 0x-prefixed 40-hex address");
 
-export const credsSchema = z.object({
-  apiKey: z.string().min(1),
-  secret: z.string().min(1),
-  passphrase: z.string().min(1),
-});
-
 export const userSchema = z.object({
   id: z.string().min(1),
   token: z.string().min(8, "gateway token must be at least 8 chars"),
   privateKey: hexString,
+  // Polymarket deposit / proxy wallet (SDK `wallet`). NOT derivable from privateKey.
   funder: address,
-  // Polymarket signature type: 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271.
-  // All three sign with the EOA (privateKey) on behalf of the `funder` wallet.
-  signatureType: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(3),
-  creds: credsSchema,
 });
 
 export const usersSchema = z.array(userSchema);

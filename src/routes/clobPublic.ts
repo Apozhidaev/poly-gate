@@ -1,10 +1,8 @@
-import { type Chain as ClobChain, ClobClient } from "@polymarket/clob-client-v2";
+import { createSecureClient } from "@polymarket/client";
+import { privateKey } from "@polymarket/client/viem";
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
-import { createWalletClient, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
-import { viemChain } from "../lib/polymarket/clientFactory.js";
 import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
 
@@ -80,7 +78,7 @@ export function registerClobPublicRoutes(app: FastifyInstance): void {
         tags: ["clob"],
         summary: "Derive L2 API credentials",
         description:
-          "Calls Polymarket createOrDeriveApiKey (L1) for the given privateKey. Returns creds to paste into config.",
+          "Creates an ephemeral SecureClient for the given privateKey and returns its L2 credentials.",
         body: deriveApiKeyBody,
         response: {
           200: Type.Object({
@@ -92,27 +90,20 @@ export function registerClobPublicRoutes(app: FastifyInstance): void {
       },
     },
     async (request) => {
-      const { privateKey, nonce } = request.body as {
+      const { privateKey: pk, nonce } = request.body as {
         privateKey: string;
         nonce?: number;
       };
-      const { clob, chainId } = app.gate.config.upstreams;
-
-      const account = privateKeyToAccount(privateKey as `0x${string}`);
-      const signer = createWalletClient({
-        account,
-        chain: viemChain(chainId),
-        transport: http(),
-      });
-      const client = new ClobClient({
-        host: clob,
-        chain: chainId as ClobChain,
-        signer,
-      });
 
       const creds = await scheduleClobCall(
         app.gate,
-        () => client.createOrDeriveApiKey(nonce),
+        async () => {
+          const client = await createSecureClient({
+            signer: privateKey(pk as `0x${string}`),
+            ...(nonce != null ? { nonce } : {}),
+          });
+          return client.credentials;
+        },
         { bucket: "clob:apikey", retryDisabled: true },
       );
       return {

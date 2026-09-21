@@ -5,8 +5,9 @@ import type { BucketName } from "../rateLimiterRegistry.js";
 import { withRetry } from "../retry.js";
 
 /**
- * The clob-client-v2 does NOT throw on HTTP errors — it returns `{ error, status? }`.
+ * Older CLOB SDKs sometimes returned `{ error, status? }` instead of throwing.
  * Convert those into UpstreamError so retry + error handling behave consistently.
+ * @polymarket/client typically throws; this keeps a safety net for odd payloads.
  */
 export function unwrapClobResult<T>(res: T): T {
   if (res && typeof res === "object" && "error" in res && (res as { error?: unknown }).error) {

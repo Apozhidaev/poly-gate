@@ -1,13 +1,33 @@
 import type { FastifyInstance } from "fastify";
-import { ClobClient } from "@polymarket/clob-client-v2";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { createSecureClient, type SecureClient } from "@polymarket/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "../src/config/schema.js";
 import { configSchema } from "../src/config/schema.js";
 import { buildServer } from "../src/server.js";
 
+vi.mock("@polymarket/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@polymarket/client")>();
+  return {
+    ...actual,
+    createSecureClient: vi.fn(),
+  };
+});
+
 // A valid secp256k1 test private key (well-known Hardhat account #0).
 const TEST_PK = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 const TEST_FUNDER = `0x${"b".repeat(40)}`;
+
+function mockSecureClient(creds: {
+  key: string;
+  secret: string;
+  passphrase: string;
+}): SecureClient {
+  return {
+    get credentials() {
+      return creds;
+    },
+  } as SecureClient;
+}
 
 function makeConfig(withUser: boolean): AppConfig {
   return {
@@ -19,8 +39,6 @@ function makeConfig(withUser: boolean): AppConfig {
             token: "test-token-123",
             privateKey: TEST_PK,
             funder: TEST_FUNDER,
-            signatureType: 3,
-            creds: { apiKey: "k", secret: "s", passphrase: "p" },
           },
         ]
       : [],
@@ -28,6 +46,16 @@ function makeConfig(withUser: boolean): AppConfig {
 }
 
 let app: FastifyInstance | undefined;
+
+beforeEach(() => {
+  vi.mocked(createSecureClient).mockResolvedValue(
+    mockSecureClient({
+      key: "boot-key",
+      secret: "boot-secret",
+      passphrase: "boot-pass",
+    }),
+  );
+});
 
 afterEach(async () => {
   vi.restoreAllMocks();
@@ -79,11 +107,13 @@ describe("server", () => {
   });
 
   it("returns L2 creds for the authenticated wallet on GET /system/user-creds", async () => {
-    vi.spyOn(ClobClient.prototype, "createOrDeriveApiKey").mockResolvedValue({
-      key: "live-key",
-      secret: "live-secret",
-      passphrase: "live-pass",
-    });
+    vi.mocked(createSecureClient).mockResolvedValue(
+      mockSecureClient({
+        key: "live-key",
+        secret: "live-secret",
+        passphrase: "live-pass",
+      }),
+    );
 
     app = await buildServer(makeConfig(true));
     const res = await app.inject({
@@ -169,11 +199,13 @@ describe("server", () => {
   });
 
   it("derives L2 creds via POST /clob/derive-api-key", async () => {
-    vi.spyOn(ClobClient.prototype, "createOrDeriveApiKey").mockResolvedValue({
-      key: "derived-key",
-      secret: "derived-secret",
-      passphrase: "derived-pass",
-    });
+    vi.mocked(createSecureClient).mockResolvedValue(
+      mockSecureClient({
+        key: "derived-key",
+        secret: "derived-secret",
+        passphrase: "derived-pass",
+      }),
+    );
 
     app = await buildServer(makeConfig(false));
     const res = await app.inject({

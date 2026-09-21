@@ -1,10 +1,10 @@
 import {
-  AssetType,
-  type ClobClient,
+  OrderSide,
   OrderType,
-  Side,
-  type TickSize,
-} from "@polymarket/clob-client-v2";
+  type SecureClient,
+} from "@polymarket/client";
+import { fetchBalanceAllowance } from "@polymarket/client/actions";
+import { AssetType } from "@polymarket/bindings/clob";
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
@@ -19,6 +19,7 @@ const orderBodySchema = Type.Object({
   orderType: Type.Optional(
     StringEnum(["GTC", "GTD", "FOK", "FAK"], { default: "GTC" }),
   ),
+  // Accepted for API compatibility; unified SDK resolves tick size / neg-risk itself.
   tickSize: StringEnum(TICK_SIZES),
   negRisk: Type.Boolean(),
   price: Type.Optional(
@@ -49,7 +50,7 @@ interface OrderBody {
   expiration?: number;
 }
 
-function requireUser(request: FastifyRequest): { client: ClobClient } {
+function requireUser(request: FastifyRequest): { client: SecureClient } {
   if (!request.polyUser) {
     // Should never happen: requireAuth runs first. Guard for type-safety.
     throw new Error("Authenticated user not resolved");
@@ -68,7 +69,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
         tags: ["clob"],
         summary: "Post a new order",
         description:
-          "Builds, signs (POLY_1271) and posts an order. High-level body; NOT retried (duplicate risk).",
+          "Builds, signs and posts an order via SecureClient. High-level body; NOT retried (duplicate risk).",
         security: [{ bearerAuth: [] }],
         body: orderBodySchema,
       },
@@ -76,12 +77,8 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const { client } = requireUser(request);
       const body = request.body as OrderBody;
-      const side = body.side === "BUY" ? Side.BUY : Side.SELL;
+      const side = body.side === "BUY" ? OrderSide.BUY : OrderSide.SELL;
       const orderType = (body.orderType ?? "GTC") as OrderType;
-      const options = {
-        tickSize: body.tickSize as TickSize,
-        negRisk: body.negRisk,
-      };
 
       const result = await scheduleClobCall(
         app.gate,
@@ -95,16 +92,22 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
                 },
               );
             }
-            return client.createAndPostMarketOrder(
-              {
-                tokenID: body.tokenID,
-                price: body.price,
+            if (side === OrderSide.BUY) {
+              return client.placeMarketOrder({
+                tokenId: body.tokenID,
+                side: OrderSide.BUY,
                 amount: body.amount,
-                side,
-              },
-              options,
+                orderType,
+                ...(body.price != null ? { maxPrice: body.price } : {}),
+              });
+            }
+            return client.placeMarketOrder({
+              tokenId: body.tokenID,
+              side: OrderSide.SELL,
+              shares: body.amount,
               orderType,
-            );
+              ...(body.price != null ? { minPrice: body.price } : {}),
+            });
           }
           if (body.price == null || body.size == null) {
             throw Object.assign(
@@ -114,17 +117,13 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
               },
             );
           }
-          return client.createAndPostOrder(
-            {
-              tokenID: body.tokenID,
-              price: body.price,
-              size: body.size,
-              side,
-              expiration: body.expiration,
-            },
-            options,
-            orderType as OrderType.GTC | OrderType.GTD,
-          );
+          return client.placeLimitOrder({
+            tokenId: body.tokenID,
+            side,
+            price: body.price,
+            size: body.size,
+            ...(body.expiration != null ? { expiration: body.expiration } : {}),
+          });
         },
         { bucket: "clob:order:post", retryDisabled: true },
       );
@@ -149,7 +148,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const { orderID } = request.body as { orderID: string };
       const result = await scheduleClobCall(
         app.gate,
-        () => client.cancelOrder({ orderID }),
+        () => client.cancelOrder({ orderId: orderID }),
         {
           bucket: "clob:order:delete",
         },
@@ -174,7 +173,7 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const { orderID } = request.params as { orderID: string };
       const result = await scheduleClobCall(
         app.gate,
-        () => client.getOrder(orderID),
+        () => client.fetchOrder({ orderId: orderID }),
         {
           bucket: "clob:order",
         },
@@ -198,8 +197,10 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const { client } = requireUser(request);
       const result = await scheduleClobCall(
         app.gate,
-        () =>
-          client.getOpenOrders(),
+        async () => {
+          const page = await client.listOpenOrders().firstPage();
+          return page.items;
+        },
         { bucket: "clob:orders" },
       );
       return reply.send(result);
@@ -231,17 +232,27 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const { client } = requireUser(request);
       const q = request.query as Record<string, string | undefined>;
-      const params = {
-        id: q.id,
-        maker_address: q.maker_address,
-        market: q.market,
-        asset_id: q.asset_id,
-        before: q.before,
-        after: q.after,
-      };
       const result = await scheduleClobCall(
         app.gate,
-        () => client.getTradesPaginated(params, q.next_cursor),
+        async () => {
+          const page = await client
+            .listAccountTrades({
+              id: q.id,
+              makerAddress: q.maker_address,
+              market: q.market,
+              assetId: q.asset_id,
+              before: q.before,
+              after: q.after,
+              cursor: q.next_cursor,
+            })
+            .firstPage();
+          return {
+            items: page.items,
+            next_cursor: page.nextCursor,
+            has_more: page.hasMore,
+            total_count: page.totalCount,
+          };
+        },
         { bucket: "clob:trades" },
       );
       return reply.send(result);
@@ -264,8 +275,8 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const result = await scheduleClobCall(
         app.gate,
         () =>
-          client.getBalanceAllowance({
-            asset_type: AssetType.COLLATERAL,
+          fetchBalanceAllowance(client, {
+            assetType: AssetType.COLLATERAL,
           }),
         { bucket: "clob:balance" },
       );
@@ -296,9 +307,9 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       const result = await scheduleClobCall(
         app.gate,
         () =>
-          client.getBalanceAllowance({
-            asset_type: AssetType.CONDITIONAL,
-            token_id: q.token_id,
+          fetchBalanceAllowance(client, {
+            assetType: AssetType.CONDITIONAL,
+            tokenId: q.token_id,
           }),
         { bucket: "clob:balance" },
       );

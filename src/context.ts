@@ -13,14 +13,14 @@ export interface GateContext {
   clients: ClobClientFactory;
 }
 
-export function buildContext(
+export async function buildContext(
   config: AppConfig,
   logger: { warn: (obj: unknown, msg?: string) => void },
-): GateContext {
+): Promise<GateContext> {
   const limiter = new RateLimiterRegistry(config.rateLimits.enabled);
   const profile = new ProfileResolver(config);
   const httpProxy = new HttpProxy(limiter, profile, logger, config.http.timeoutMs);
-  const clients = new ClobClientFactory(config);
+  const clients = await ClobClientFactory.create(config);
   return { config, limiter, profile, httpProxy, clients };
 }
 

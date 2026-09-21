@@ -1,61 +1,35 @@
-import { type Chain as ClobChain, ClobClient, SignatureTypeV2 } from "@polymarket/clob-client-v2";
-import { type Chain as ViemChain, createWalletClient, defineChain, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { polygon, polygonAmoy } from "viem/chains";
+import { createSecureClient, type SecureClient } from "@polymarket/client";
+import { privateKey } from "@polymarket/client/viem";
 import type { AppConfig, UserConfig } from "../../config/schema.js";
-
-/**
- * Resolves a viem Chain for the configured chainId. Only used so viem's http()
- * transport has a default RPC URL; no RPC calls are made for EIP-712 signing.
- */
-/** Viem chain for EIP-712 signing transport (no RPC calls required for L1 auth). */
-export function viemChain(chainId: number): ViemChain {
-  if (chainId === polygon.id) return polygon;
-  if (chainId === polygonAmoy.id) return polygonAmoy;
-  return defineChain({
-    id: chainId,
-    name: `chain-${chainId}`,
-    nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: ["http://localhost:8545"] } },
-  });
-}
 
 export interface ResolvedUser {
   config: UserConfig;
-  client: ClobClient;
+  client: SecureClient;
 }
 
 /**
- * Builds and caches one authenticated ClobClient per configured wallet.
+ * Builds and caches one authenticated SecureClient per configured wallet.
  * The service still works with zero users — private routes simply won't resolve one.
  */
 export class ClobClientFactory {
   private readonly byId = new Map<string, ResolvedUser>();
   private readonly byToken = new Map<string, ResolvedUser>();
 
-  constructor(config: AppConfig) {
-    const chain = viemChain(config.upstreams.chainId);
-    for (const user of config.users) {
-      const account = privateKeyToAccount(user.privateKey as `0x${string}`);
-      const signer = createWalletClient({ account, chain, transport: http() });
+  private constructor() {}
 
-      const client = new ClobClient({
-        host: config.upstreams.clob,
-        chain: config.upstreams.chainId as ClobChain,
-        signer,
-        creds: {
-          key: user.creds.apiKey,
-          secret: user.creds.secret,
-          passphrase: user.creds.passphrase,
-        },
-        signatureType: user.signatureType as SignatureTypeV2,
-        funderAddress: user.funder,
+  static async create(config: AppConfig): Promise<ClobClientFactory> {
+    const factory = new ClobClientFactory();
+    for (const user of config.users) {
+      const client = await createSecureClient({
+        wallet: user.funder,
+        signer: privateKey(user.privateKey as `0x${string}`),
       });
 
       const resolved: ResolvedUser = { config: user, client };
-      this.byId.set(user.id, resolved);
-      this.byToken.set(user.token, resolved);
+      factory.byId.set(user.id, resolved);
+      factory.byToken.set(user.token, resolved);
     }
+    return factory;
   }
 
   get hasUsers(): boolean {

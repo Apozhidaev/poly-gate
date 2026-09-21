@@ -25,11 +25,6 @@ const userBlock = (id: string, token = "supersecrettoken") =>
     `  token: ${token}`,
     `  privateKey: "0x${"a".repeat(64)}"`,
     `  funder: "0x${"b".repeat(40)}"`,
-    "  signatureType: 3",
-    "  creds:",
-    "    apiKey: k",
-    "    secret: s",
-    "    passphrase: p",
   ].join("\n");
 
 describe("loadConfig", () => {
@@ -77,7 +72,7 @@ describe("loadConfig", () => {
     const config = loadConfig(configPath, usersPath);
     expect(config.users).toHaveLength(1);
     expect(config.users[0].id).toBe("main");
-    expect(config.users[0].signatureType).toBe(3);
+    expect(config.users[0].funder).toMatch(/^0xb+$/);
   });
 
   it("accepts multiple users in users.yaml", () => {
@@ -102,7 +97,6 @@ describe("loadConfig", () => {
         "  token: supersecrettoken",
         `  privateKey: "0x${"a".repeat(64)}"`,
         '  funder: "not-an-address"',
-        "  creds: { apiKey: k, secret: s, passphrase: p }",
       ].join("\n"),
     );
     expect(() => loadConfig(configPath, usersPath)).toThrow(/Invalid users file/);

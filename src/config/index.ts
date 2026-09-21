@@ -80,10 +80,8 @@ export function redactConfig(config: AppConfig): unknown {
     users: config.users.map((u) => ({
       id: u.id,
       funder: u.funder,
-      signatureType: u.signatureType,
       token: "***",
       privateKey: "***",
-      creds: { apiKey: "***", secret: "***", passphrase: "***" },
     })),
   };
 }

@@ -3,7 +3,6 @@ import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
 import { toHex } from "viem";
 import { generateMnemonic, mnemonicToAccount } from "viem/accounts";
-import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
 
 const generateSeedBody = Type.Object({
   strength: Type.Optional(
@@ -115,7 +114,7 @@ export function registerSystemRoutes(app: FastifyInstance): void {
         tags: ["system"],
         summary: "Get L2 API credentials",
         description:
-          "Derives Polymarket L2 credentials (apiKey, secret, passphrase) via createOrDeriveApiKey for the wallet selected by the Bearer token.",
+          "Returns the L2 credentials (apiKey, secret, passphrase) already derived by SecureClient for the wallet selected by the Bearer token.",
         security: [{ bearerAuth: [] }],
         response: {
           200: Type.Object({
@@ -127,16 +126,11 @@ export function registerSystemRoutes(app: FastifyInstance): void {
       },
     },
     async (request) => {
-      const client = request.polyUser!.client;
-      const creds = await scheduleClobCall(
-        app.gate,
-        () => client.createOrDeriveApiKey(),
-        { bucket: "clob:apikey", retryDisabled: true },
-      );
+      const { credentials } = request.polyUser!.client;
       return {
-        apiKey: creds.key,
-        secret: creds.secret,
-        passphrase: creds.passphrase,
+        apiKey: credentials.key,
+        secret: credentials.secret,
+        passphrase: credentials.passphrase,
       };
     },
   );

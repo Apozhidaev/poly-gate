@@ -24,7 +24,7 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Shared services.
-  app.decorate("gate", buildContext(config, app.log));
+  app.decorate("gate", await buildContext(config, app.log));
 
   registerErrorHandler(app);
   registerAuth(app);
