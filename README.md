@@ -55,16 +55,6 @@ curl -s -X POST http://localhost:8080/system/derive-wallet \
 
 Optional body fields: `accountIndex` (default `0`), `addressIndex` (default `0`), `passphrase`. Path: `m/44'/60'/{accountIndex}'/0/{addressIndex}` (MetaMask-style). Do not log request bodies (they contain a seed phrase).
 
-### Getting L2 credentials
-
-```bash
-curl -s -X POST http://localhost:8080/clob/derive-api-key \
-  -H 'content-type: application/json' \
-  -d '{"privateKey":"0x..."}'
-```
-
-Optional body field: `nonce`. Returns `apiKey` / `secret` / `passphrase` for inspection or external tools. **You do not need to paste them into `users.yaml`** — the gateway derives credentials automatically at boot via `createSecureClient`. Do not log request bodies (they contain a private key).
-
 ## Run
 
 ```bash
@@ -106,7 +96,6 @@ Key points:
 | `GET /clob/order-book` | CLOB `/book` (`token_id`) | – |
 | `GET /clob/markets/{condition_id}` | CLOB `/markets/{condition_id}` | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
-| `POST /clob/derive-api-key` | ephemeral `createSecureClient` → credentials | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |

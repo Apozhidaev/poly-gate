@@ -188,39 +188,6 @@ describe("server", () => {
     });
   });
 
-  it("rejects POST /clob/derive-api-key without privateKey", async () => {
-    app = await buildServer(makeConfig(false));
-    const res = await app.inject({
-      method: "POST",
-      url: "/clob/derive-api-key",
-      payload: {},
-    });
-    expect(res.statusCode).toBe(400);
-  });
-
-  it("derives L2 creds via POST /clob/derive-api-key", async () => {
-    vi.mocked(createSecureClient).mockResolvedValue(
-      mockSecureClient({
-        key: "derived-key",
-        secret: "derived-secret",
-        passphrase: "derived-pass",
-      }),
-    );
-
-    app = await buildServer(makeConfig(false));
-    const res = await app.inject({
-      method: "POST",
-      url: "/clob/derive-api-key",
-      payload: { privateKey: TEST_PK },
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({
-      apiKey: "derived-key",
-      secret: "derived-secret",
-      passphrase: "derived-pass",
-    });
-  });
-
   it("forwards public gamma requests 1:1 (path + query)", async () => {
     const seen: string[] = [];
     vi.stubGlobal(

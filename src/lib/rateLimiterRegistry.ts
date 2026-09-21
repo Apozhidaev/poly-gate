@@ -9,7 +9,6 @@ export type BucketName =
   | "gamma:events"
   | "gamma:general"
   | "clob:books"
-  | "clob:apikey"
   | "clob:markets"
   | "clob:order"
   | "clob:order:post"
@@ -79,10 +78,6 @@ export class RateLimiterRegistry {
       interval: TEN_SECONDS,
       count: scale(200),
     });
-    const clobApiKey = new RateLimiter({
-      interval: TEN_SECONDS,
-      count: scale(100),
-    });
 
     const dataGeneral = new RateLimiter({
       interval: TEN_SECONDS,
@@ -106,7 +101,6 @@ export class RateLimiterRegistry {
       "gamma:general": [gammaGeneral],
       "gamma:events": [gammaEvents, gammaGeneral],
       "clob:books": [clobBooks, clobGeneral],
-      "clob:apikey": [clobApiKey, clobGeneral],
       "clob:markets": [clobGeneral],
       "clob:order:post": [clobOrderPost, clobSustained, clobGeneral],
       "clob:order:delete": [clobOrderDelete, clobSustained, clobGeneral],

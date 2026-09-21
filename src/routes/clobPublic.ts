@@ -1,8 +1,5 @@
-import { createSecureClient } from "@polymarket/client";
-import { privateKey } from "@polymarket/client/viem";
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
-import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
 import { StringEnum } from "../lib/typebox.js";
 import { forwardPublic } from "./helpers.js";
 
@@ -14,14 +11,6 @@ const orderBookQuery = Type.Object(
   },
   objOpts,
 );
-
-const deriveApiKeyBody = Type.Object({
-  privateKey: Type.String({
-    pattern: "^0x[0-9a-fA-F]+$",
-    description: "0x-prefixed secp256k1 private key (signer EOA)",
-  }),
-  nonce: Type.Optional(Type.Integer()),
-});
 
 export function registerClobPublicRoutes(app: FastifyInstance): void {
   app.get(
@@ -69,49 +58,6 @@ export function registerClobPublicRoutes(app: FastifyInstance): void {
         bucket: "clob:books",
         method: "GET",
       }),
-  );
-
-  app.post(
-    "/clob/derive-api-key",
-    {
-      schema: {
-        tags: ["clob"],
-        summary: "Derive L2 API credentials",
-        description:
-          "Creates an ephemeral SecureClient for the given privateKey and returns its L2 credentials.",
-        body: deriveApiKeyBody,
-        response: {
-          200: Type.Object({
-            apiKey: Type.String(),
-            secret: Type.String(),
-            passphrase: Type.String(),
-          }),
-        },
-      },
-    },
-    async (request) => {
-      const { privateKey: pk, nonce } = request.body as {
-        privateKey: string;
-        nonce?: number;
-      };
-
-      const creds = await scheduleClobCall(
-        app.gate,
-        async () => {
-          const client = await createSecureClient({
-            signer: privateKey(pk as `0x${string}`),
-            ...(nonce != null ? { nonce } : {}),
-          });
-          return client.credentials;
-        },
-        { bucket: "clob:apikey", retryDisabled: true },
-      );
-      return {
-        apiKey: creds.key,
-        secret: creds.secret,
-        passphrase: creds.passphrase,
-      };
-    },
   );
 
   app.post(
