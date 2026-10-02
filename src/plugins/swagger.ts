@@ -24,7 +24,6 @@ export async function registerSwagger(app: FastifyInstance): Promise<void> {
         { name: "gamma", description: "Gamma API (public)" },
         { name: "clob", description: "CLOB API (public market data + private trading)" },
         { name: "data", description: "Data API (public)" },
-        { name: "pnl", description: "User PnL API (public)" },
         { name: "system", description: "Gateway health & meta" },
       ],
     },

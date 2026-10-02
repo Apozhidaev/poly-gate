@@ -109,7 +109,6 @@ upstreams:
   gamma: https://gamma-api.polymarket.com
   data:  https://data-api.polymarket.com
   clob:  https://clob.polymarket.com
-  pnl:   https://user-pnl-api.polymarket.com
   chainId: 137
 rateLimits:
   enabled: true
@@ -149,7 +148,6 @@ rateLimits:
 | data:positions           | 200 req/10s             | `GET /data/positions`                        |
 | data:activity            | 200 req/10s             | `GET /data/activity`                         |
 | data:general             | 800 req/10s             | `GET /data/leaderboard`, `GET /data/holders`, `GET /data/user-pnl`, `GET /data/user-stats`, `GET /data/accounting/snapshot` |
-| pnl:general              | 100 req/10s (запас)     | `GET /pnl/user-pnl`                          |
 
 - Реализуем burst + sustained (Bottleneck `reservoir` + refresh) для торговых бакетов.
 - При достижении лимита — очередь (как у Cloudflare), с таймаутом и ответом `429`/`503 Retry-After` при переполнении.
@@ -169,7 +167,7 @@ rateLimits:
 - **Per-API retry overrides:** глобальные `retries.*` для всех API; `profiles.<api>.retries` переопределяет только `maxElapsedMs` и `attempts`.
 - **Таймаут на исходящий запрос:** `http.timeoutMs` (по умолчанию `120000`) — **общий для всех API** — на каждую попытку `fetch` в `httpProxy`. «Зависшее» соединение превращается в retryable-ошибку (`TimeoutError`) и уходит в повтор. `0` отключает. Отсчёт стартует внутри бакета лимитера.
 - Ретрай применяется **внутри** бакета лимитера (каждая попытка проходит через rate limiter), поэтому повторы не пробивают лимиты.
-- Реализация — единый helper `withRetry()`; `ProfileResolver` выбирает cfg по API (`gamma|data|clob|pnl`). Для CLOB SDK — тот же resolver с `clob` (кроме постинга ордера).
+- Реализация — единый helper `withRetry()`; `ProfileResolver` выбирает cfg по API (`gamma|data|clob`). Для CLOB SDK — тот же resolver с `clob` (кроме постинга ордера).
 
 ### Конфиг retries (добавка к `config.example.yaml`)
 ```yaml
@@ -231,9 +229,6 @@ Data API v2 pass-through: параметры и ответ (`{ data, pagination?
 - `GET /data/holders` → `GET data /v2/holders`
 - `GET /data/user-pnl` → `GET data /v2/user-pnl` (`user`, `interval`, `fidelity`)
 - `GET /data/user-stats` → `GET data /v2/user-stats` (`user`; `data: null` for unknown wallets)
-
-### User PnL API (публичные, без Bearer) — префикс `/pnl`
-- `GET /pnl/user-pnl` → `GET pnl /user-pnl` (недокументированный; параметры `user_address`, `interval`, `fidelity` — от клиента)
 
 ### Служебные
 - `GET /system/health` — жив ли шлюз (+ опционально ping `/ok` upstream'ов)

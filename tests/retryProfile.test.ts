@@ -10,7 +10,7 @@ describe("ProfileResolver", () => {
   it("uses global retries when no profile is set", () => {
     const resolver = new ProfileResolver(baseConfig());
 
-    for (const api of ["data", "clob", "gamma", "pnl"] as const) {
+    for (const api of ["data", "clob", "gamma"] as const) {
       const cfg = resolver.resolve(api).retries;
       expect(cfg.maxElapsedMs).toBe(1_800_000);
       expect(cfg.attempts).toBe(30);

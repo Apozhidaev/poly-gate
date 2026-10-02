@@ -1,3 +1,3 @@
-export type Api = "gamma" | "data" | "clob" | "pnl";
+export type Api = "gamma" | "data" | "clob";
 
-export const API_NAMES = ["gamma", "data", "clob", "pnl"] as const satisfies readonly Api[];
+export const API_NAMES = ["gamma", "data", "clob"] as const satisfies readonly Api[];

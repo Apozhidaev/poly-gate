@@ -9,7 +9,6 @@ import { registerClobPrivateRoutes } from "./routes/clobPrivate.js";
 import { registerClobPublicRoutes } from "./routes/clobPublic.js";
 import { registerDataRoutes } from "./routes/data.js";
 import { registerGammaRoutes } from "./routes/gamma.js";
-import { registerPnlRoutes } from "./routes/pnl.js";
 import { registerSystemRoutes } from "./routes/system.js";
 
 export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
@@ -36,7 +35,6 @@ export async function buildServer(config: AppConfig): Promise<FastifyInstance> {
   registerDataRoutes(app);
   registerClobPublicRoutes(app);
   registerClobPrivateRoutes(app);
-  registerPnlRoutes(app);
 
   app.addHook("onClose", async () => {
     console.log("Disconnecting...");

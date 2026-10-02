@@ -19,8 +19,7 @@ export type BucketName =
   | "data:general"
   | "data:trades"
   | "data:positions"
-  | "data:activity"
-  | "pnl:general";
+  | "data:activity";
 
 const TEN_SECONDS = 10_000;
 const TEN_MINUTES = 600_000;
@@ -98,11 +97,6 @@ export class RateLimiterRegistry {
       count: scale(200),
     });
 
-    const pnlGeneral = new RateLimiter({
-      interval: TEN_SECONDS,
-      count: scale(100),
-    });
-
     this.buckets = {
       "gamma:general": [gammaGeneral],
       "gamma:events": [gammaEvents, gammaGeneral],
@@ -118,7 +112,6 @@ export class RateLimiterRegistry {
       "data:positions": [dataPositions, dataGeneral],
       "data:activity": [dataActivity, dataGeneral],
       "data:general": [dataGeneral],
-      "pnl:general": [pnlGeneral],
     };
   }
 

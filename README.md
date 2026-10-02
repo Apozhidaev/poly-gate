@@ -110,7 +110,6 @@ Key points:
 | `GET /data/holders` | Data `/v2/holders` | – |
 | `GET /data/user-pnl` | Data `/v2/user-pnl` | – |
 | `GET /data/user-stats` | Data `/v2/user-stats` | – |
-| `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
 | `GET /system/health` | – (gateway meta) | – |
 | `POST /system/generate-seed` | – (local BIP39 generation) | – |
 | `POST /system/derive-wallet` | – (local BIP39 derivation) | – |

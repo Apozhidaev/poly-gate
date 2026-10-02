@@ -38,14 +38,12 @@ export const configSchema = z.object({
       gamma: z.string().url().default("https://gamma-api.polymarket.com"),
       data: z.string().url().default("https://data-api.polymarket.com"),
       clob: z.string().url().default("https://clob.polymarket.com"),
-      pnl: z.string().url().default("https://user-pnl-api.polymarket.com"),
       chainId: z.number().int().default(137),
     })
     .default({
       gamma: "https://gamma-api.polymarket.com",
       data: "https://data-api.polymarket.com",
       clob: "https://clob.polymarket.com",
-      pnl: "https://user-pnl-api.polymarket.com",
       chainId: 137,
     }),
   rateLimits: z
@@ -91,7 +89,6 @@ export const configSchema = z.object({
       gamma: apiProfileSchema.optional(),
       data: apiProfileSchema.optional(),
       clob: apiProfileSchema.optional(),
-      pnl: apiProfileSchema.optional(),
     })
     .default({}),
   logLevel: z
