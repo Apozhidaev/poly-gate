@@ -13,151 +13,117 @@ const enumU = StringEnum;
 const address = (opts?: Record<string, unknown>) =>
   Type.String({ pattern: ADDRESS, description: "0x-prefixed wallet address", ...opts });
 
-// Query schemas mirror https://docs.polymarket.com Data API params 1:1.
+// Query schemas mirror https://docs.polymarket.com Data API v2 params 1:1.
 // additionalProperties:true keeps any extra/undocumented param passing through
-// (routes forward the raw query string regardless).
+// (routes forward the raw query string regardless; v2 also accepts camelCase aliases).
 const objOpts = { additionalProperties: true } as const;
 
 const activityQuery = Type.Object(
   {
     user: address(),
-    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 500, default: 100 })),
-    offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 10000, default: 0 })),
-    market: Type.Optional(
-      Type.String({ description: "CSV of condition IDs. Mutually exclusive with eventId." }),
-    ),
-    eventId: Type.Optional(
-      Type.String({ description: "CSV of event IDs. Mutually exclusive with market." }),
-    ),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000, default: 100 })),
+    cursor: Type.Optional(Type.String({ description: "Opaque pagination cursor from next_cursor" })),
     type: Type.Optional(
       Type.String({
         description:
-          "CSV of: TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION, DEPOSIT, WITHDRAWAL, YIELD, MAKER_REBATE, TAKER_REBATE, REFERRAL_REWARD",
+          "CSV of: TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION, DEPOSIT, WITHDRAWAL, YIELD, MAKER_REBATE, TAKER_REBATE, REFERRAL_REWARD, TIP",
       }),
     ),
+    condition: Type.Optional(
+      Type.String({ description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId." }),
+    ),
+    event_id: Type.Optional(
+      Type.String({ description: "CSV of event IDs (at most 20). Mutually exclusive with condition." }),
+    ),
+    side: Type.Optional(enumU(["BUY", "SELL"])),
     start: Type.Optional(Type.Integer({ minimum: 0, description: "Lower-bound epoch seconds" })),
     end: Type.Optional(Type.Integer({ minimum: 0, description: "Upper-bound epoch seconds" })),
-    sortBy: Type.Optional(enumU(["TIMESTAMP", "TOKENS", "CASH"], { default: "TIMESTAMP" })),
-    sortDirection: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
-    side: Type.Optional(enumU(["BUY", "SELL"])),
+    sort_by: Type.Optional(enumU(["TIMESTAMP"], { default: "TIMESTAMP" })),
+    sort_direction: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
+    exclude_deposits_withdrawals: Type.Optional(Type.Boolean({ default: true })),
   },
   objOpts,
 );
 
 const positionsQuery = Type.Object(
   {
-    user: address({ description: "User address (required)" }),
-    market: Type.Optional(
-      Type.String({ description: "CSV of condition IDs. Mutually exclusive with eventId." }),
+    user: Type.Optional(address({ description: "Wallet to anchor on. At least one of user/condition required." })),
+    condition: Type.Optional(
+      Type.String({ description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId." }),
     ),
-    eventId: Type.Optional(
-      Type.String({ description: "CSV of event IDs. Mutually exclusive with market." }),
+    event_id: Type.Optional(
+      Type.String({ description: "CSV of event IDs (at most 20). User-anchored only." }),
     ),
-    sizeThreshold: Type.Optional(Type.Number({ minimum: 0, default: 1 })),
-    redeemable: Type.Optional(Type.Boolean({ default: false })),
-    mergeable: Type.Optional(Type.Boolean({ default: false })),
-    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 500, default: 100 })),
-    offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 10000, default: 0 })),
-    sortBy: Type.Optional(
+    status: Type.Optional(
+      enumU(["OPEN", "REDEEMABLE", "REDEEMABLE_LOST", "MERGEABLE", "CLOSED"], {
+        default: "OPEN",
+        description: "Position lifecycle filter; defaults to OPEN.",
+      }),
+    ),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000 })),
+    cursor: Type.Optional(Type.String({ description: "Opaque pagination cursor from next_cursor" })),
+    title: Type.Optional(Type.String({ description: "Case-insensitive market-title substring filter" })),
+    filter_type: Type.Optional(enumU(["CASH", "TOKENS"], { default: "TOKENS" })),
+    filter_amount: Type.Optional(Type.Number({ minimum: 0, description: "Filter floor; TOKENS = min shares" })),
+    include_archived: Type.Optional(Type.Boolean({ default: false })),
+    sort_by: Type.Optional(
       enumU(
-        [
-          "CURRENT",
-          "INITIAL",
-          "TOKENS",
-          "CASHPNL",
-          "PERCENTPNL",
-          "TITLE",
-          "RESOLVING",
-          "PRICE",
-          "AVGPRICE",
-        ],
-        { default: "TOKENS" },
+        ["CURRENT_VALUE", "PRICE", "TOKENS", "UNREALIZED_PNL", "REALIZED_PNL", "TOTAL_PNL", "TIMESTAMP"],
+        { description: "Default follows status (e.g. CURRENT_VALUE for OPEN)." },
       ),
     ),
-    sortDirection: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
-    title: Type.Optional(Type.String({ maxLength: 100 })),
-  },
-  objOpts,
-);
-
-const closedPositionsQuery = Type.Object(
-  {
-    user: address(),
-    market: Type.Optional(
-      Type.String({ description: "CSV of condition IDs. Cannot be used with eventId." }),
-    ),
-    title: Type.Optional(Type.String({ maxLength: 100, description: "Filter by market title" })),
-    eventId: Type.Optional(
-      Type.String({ description: "CSV of event IDs. Cannot be used with market." }),
-    ),
-    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 50, default: 10 })),
-    offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 100000, default: 0 })),
-    sortBy: Type.Optional(
-      enumU(["REALIZEDPNL", "TITLE", "PRICE", "AVGPRICE", "TIMESTAMP"], { default: "REALIZEDPNL" }),
-    ),
-    sortDirection: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
+    sort_direction: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
+    start: Type.Optional(Type.Integer({ minimum: 0, description: "Inclusive lower bound on last_event_at" })),
+    end: Type.Optional(Type.Integer({ minimum: 0, description: "Inclusive upper bound on last_event_at" })),
   },
   objOpts,
 );
 
 const tradesQuery = Type.Object(
   {
-    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 10000, default: 100 })),
-    offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 10000, default: 0 })),
-    takerOnly: Type.Optional(Type.Boolean({ default: true })),
-    filterType: Type.Optional(
-      enumU(["CASH", "TOKENS"], { description: "Must be provided together with filterAmount." }),
-    ),
-    filterAmount: Type.Optional(
-      Type.Number({ minimum: 0, description: "Must be provided together with filterType." }),
-    ),
-    market: Type.Optional(
-      Type.String({ description: "CSV of condition IDs. Mutually exclusive with eventId." }),
-    ),
-    eventId: Type.Optional(
-      Type.String({ description: "CSV of event IDs. Mutually exclusive with market." }),
-    ),
     user: Type.Optional(address()),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000 })),
+    cursor: Type.Optional(Type.String({ description: "Opaque pagination cursor from next_cursor" })),
+    taker_only: Type.Optional(Type.Boolean({ default: true })),
+    filter_type: Type.Optional(enumU(["CASH", "TOKENS"], { default: "TOKENS" })),
+    filter_amount: Type.Optional(Type.Number({ minimum: 0, description: "Minimum trade size" })),
+    condition: Type.Optional(
+      Type.String({ description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId." }),
+    ),
+    event_id: Type.Optional(Type.String({ description: "CSV of event IDs (at most 20)." })),
     side: Type.Optional(enumU(["BUY", "SELL"])),
+    start: Type.Optional(Type.Integer({ minimum: 0, description: "Window start on block_timestamp" })),
+    end: Type.Optional(Type.Integer({ minimum: 0, description: "Window end on block_timestamp" })),
   },
   objOpts,
 );
 
 const leaderboardQuery = Type.Object(
   {
+    time_period: Type.Optional(enumU(["day", "week", "month", "all"], { default: "day" })),
     category: Type.Optional(
-      enumU(
-        [
-          "OVERALL",
-          "POLITICS",
-          "SPORTS",
-          "ESPORTS",
-          "CRYPTO",
-          "CULTURE",
-          "MENTIONS",
-          "WEATHER",
-          "ECONOMICS",
-          "TECH",
-          "FINANCE",
-        ],
-        { default: "OVERALL" },
-      ),
+      Type.String({
+        default: "overall",
+        description: "overall (default), a Gamma market category (e.g. sports), or combos/esports.",
+      }),
     ),
-    timePeriod: Type.Optional(enumU(["DAY", "WEEK", "MONTH", "ALL"], { default: "DAY" })),
-    orderBy: Type.Optional(enumU(["PNL", "VOL"], { default: "PNL" })),
-    limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, default: 25 })),
-    offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000, default: 0 })),
+    sort_by: Type.Optional(enumU(["PNL", "VOLUME"], { default: "PNL" })),
     user: Type.Optional(address()),
-    userName: Type.Optional(Type.String()),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000 })),
+    cursor: Type.Optional(Type.String({ description: "Opaque pagination cursor from next_cursor" })),
   },
   objOpts,
 );
 
 const holdersQuery = Type.Object(
   {
-    market: Type.String({ description: "CSV of condition IDs (required)." }),
-    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 500, default: 20 })),
-    minBalance: Type.Optional(Type.Integer({ minimum: 0, maximum: 999999, default: 1 })),
+    condition: Type.String({
+      description: "CSV of condition IDs (at most 20; required). Aliases: condition_id, conditionId.",
+    }),
+    limit: Type.Optional(Type.Integer({ minimum: 0, maximum: 1000 })),
+    cursor: Type.Optional(Type.String({ description: "Opaque pagination cursor from next_cursor" })),
+    min_balance: Type.Optional(Type.Number({ minimum: 0, description: "Minimum net balance in shares" })),
+    include_pnl: Type.Optional(Type.Boolean({ default: false })),
   },
   objOpts,
 );
@@ -194,42 +160,35 @@ interface DataRoute {
 const ROUTES: DataRoute[] = [
   {
     path: "/data/positions",
-    upstreamPath: "/positions",
+    upstreamPath: "/v2/positions",
     bucket: "data:positions",
-    summary: "Get current positions for a user",
+    summary: "Get positions for a user or market (lifecycle via status)",
     querystring: positionsQuery,
   },
   {
-    path: "/data/closed-positions",
-    upstreamPath: "/closed-positions",
-    bucket: "data:positions",
-    summary: "Get closed positions for a user",
-    querystring: closedPositionsQuery,
-  },
-  {
     path: "/data/activity",
-    upstreamPath: "/activity",
-    bucket: "data:general",
+    upstreamPath: "/v2/activity",
+    bucket: "data:activity",
     summary: "Get user activity",
     querystring: activityQuery,
   },
   {
     path: "/data/trades",
-    upstreamPath: "/trades",
+    upstreamPath: "/v2/trades",
     bucket: "data:trades",
     summary: "Get trades for a user or markets",
     querystring: tradesQuery,
   },
   {
     path: "/data/leaderboard",
-    upstreamPath: "/v1/leaderboard",
+    upstreamPath: "/v2/leaderboard",
     bucket: "data:general",
     summary: "Get trader leaderboard rankings",
     querystring: leaderboardQuery,
   },
   {
     path: "/data/holders",
-    upstreamPath: "/holders",
+    upstreamPath: "/v2/holders",
     bucket: "data:general",
     summary: "Get top holders for markets",
     querystring: holdersQuery,

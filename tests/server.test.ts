@@ -438,7 +438,7 @@ describe("server", () => {
     expect(res.json()).toEqual([]);
     expect(seen).toHaveLength(1);
     expect(seen[0]).toBe(
-      "https://data-api.polymarket.com/positions?user=0x56687bf447db6ffa42ffe2204a05edaa20f55839&limit=10",
+      "https://data-api.polymarket.com/v2/positions?user=0x56687bf447db6ffa42ffe2204a05edaa20f55839&limit=10",
     );
   });
 

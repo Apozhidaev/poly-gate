@@ -19,6 +19,7 @@ export type BucketName =
   | "data:general"
   | "data:trades"
   | "data:positions"
+  | "data:activity"
   | "pnl:general";
 
 const TEN_SECONDS = 10_000;
@@ -79,24 +80,29 @@ export class RateLimiterRegistry {
       count: scale(200),
     });
 
+    // Data API v2 caps from docs (v1 accounting/snapshot still shares data:general).
     const dataGeneral = new RateLimiter({
       interval: TEN_SECONDS,
-      count: scale(1000),
+      count: scale(800),
     });
     const dataTrades = new RateLimiter({
       interval: TEN_SECONDS,
-      count: scale(200),
+      count: scale(300),
     });
     const dataPositions = new RateLimiter({
       interval: TEN_SECONDS,
-      count: scale(150),
+      count: scale(200),
+    });
+    const dataActivity = new RateLimiter({
+      interval: TEN_SECONDS,
+      count: scale(200),
     });
 
     const pnlGeneral = new RateLimiter({
       interval: TEN_SECONDS,
       count: scale(100),
     });
-    
+
     this.buckets = {
       "gamma:general": [gammaGeneral],
       "gamma:events": [gammaEvents, gammaGeneral],
@@ -110,6 +116,7 @@ export class RateLimiterRegistry {
       "clob:orders": [clobOrders, clobGeneral],
       "data:trades": [dataTrades, dataGeneral],
       "data:positions": [dataPositions, dataGeneral],
+      "data:activity": [dataActivity, dataGeneral],
       "data:general": [dataGeneral],
       "pnl:general": [pnlGeneral],
     };

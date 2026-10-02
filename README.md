@@ -102,13 +102,12 @@ Key points:
 | `GET /clob/user-trades` | CLOB `/data/trades` | Bearer |
 | `GET /clob/usdc-balance` | CLOB USDC/collateral balance | Bearer |
 | `GET /clob/token-balance` | CLOB conditional token balance (`token_id`) | Bearer |
-| `GET /data/positions` | Data `/positions` | – |
-| `GET /data/closed-positions` | Data `/closed-positions` | – |
-| `GET /data/activity` | Data `/activity` | – |
-| `GET /data/trades` | Data `/trades` | – |
+| `GET /data/positions` | Data `/v2/positions` | – |
+| `GET /data/activity` | Data `/v2/activity` | – |
+| `GET /data/trades` | Data `/v2/trades` | – |
 | `GET /data/accounting/snapshot` | Data `/v1/accounting/snapshot` (equity as JSON) | – |
-| `GET /data/leaderboard` | Data `/v1/leaderboard` | – |
-| `GET /data/holders` | Data `/holders` | – |
+| `GET /data/leaderboard` | Data `/v2/leaderboard` | – |
+| `GET /data/holders` | Data `/v2/holders` | – |
 | `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
 | `GET /system/health` | – (gateway meta) | – |
 | `POST /system/generate-seed` | – (local BIP39 generation) | – |
@@ -136,6 +135,10 @@ Tick size and neg-risk are resolved by the SDK. For `FOK`/`FAK` provide `amount`
 - A token: `GET /clob/token-balance?token_id=...`
 
 Both return `{ "balance": <number> }` in human-readable units (6 decimals).
+
+### Data API v2
+
+Data routes proxy Polymarket Data API v2 1:1 (`/v2/...`). Responses use the v2 envelope `{ "data": ..., "pagination": ... }` with `snake_case` fields and cursor pagination (`cursor` / `next_cursor`). Closed positions are served via `GET /data/positions?status=CLOSED`. Accounting snapshot stays on v1.
 
 ### Accounting snapshot
 
