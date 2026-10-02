@@ -161,6 +161,13 @@ const userPnlQuery = Type.Object(
   objOpts,
 );
 
+const userStatsQuery = Type.Object(
+  {
+    user: address({ description: "The wallet whose profile stats to return." }),
+  },
+  objOpts,
+);
+
 const snapshotQuery = Type.Object({ user: address() }, objOpts);
 
 const snapshotResponse = Type.Object({
@@ -479,6 +486,42 @@ const userPnlResponseSchema = Type.Object(
   },
 );
 
+const userStatsSchema = Type.Object(
+  {
+    proxy_wallet: Type.String({ description: "The proxy wallet these lifetime statistics describe." }),
+    trades: Type.Integer({ minimum: 0, description: "Distinct markets the wallet traded." }),
+    biggest_win: Type.Number({ description: "Largest single resolved win, USDC (0 if none over $1)." }),
+    views: Type.Integer({ minimum: 0, description: "Profile view count." }),
+    join_date: Type.Optional(
+      Type.Union([Type.Integer(), Type.Null()], {
+        description: "Epoch seconds, or null when unknown.",
+      }),
+    ),
+    all_time_pnl: Type.Optional(
+      Type.Union([userPnlPointSchema, Type.Null()], {
+        description: "Newest persisted all-time PnL observation; null if none yet.",
+      }),
+    ),
+  },
+  {
+    description: "Profile card for one wallet, plus its newest all-time PnL observation.",
+    additionalProperties: true,
+  },
+);
+
+const userStatsResponseSchema = Type.Object(
+  {
+    data: Type.Union([userStatsSchema, Type.Null()], {
+      description: "Profile stats, or null when the wallet is not a known user.",
+    }),
+  },
+  {
+    description:
+      "`{ data }` for /v2/user-stats. data:null means unknown user; zeros mean known user with no activity.",
+    additionalProperties: true,
+  },
+);
+
 // equity.csv always has exactly two lines: header + one values row.
 function parseEquityCsv(text: string) {
   const lines = text.trim().split(/\r?\n/);
@@ -548,6 +591,14 @@ const ROUTES: DataRoute[] = [
     summary: "Get a user's PnL series",
     querystring: userPnlQuery,
     response: userPnlResponseSchema,
+  },
+  {
+    path: "/data/user-stats",
+    upstreamPath: "/v2/user-stats",
+    bucket: "data:general",
+    summary: "Get a user's profile stats",
+    querystring: userStatsQuery,
+    response: userStatsResponseSchema,
   },
 ];
 
