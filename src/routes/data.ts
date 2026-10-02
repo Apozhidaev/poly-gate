@@ -30,7 +30,9 @@ const activityQuery = Type.Object(
       }),
     ),
     condition: Type.Optional(
-      Type.String({ description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId." }),
+      Type.String({
+        description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId.",
+      }),
     ),
     event_id: Type.Optional(
       Type.String({ description: "CSV of event IDs (at most 20). Mutually exclusive with condition." }),
@@ -47,9 +49,13 @@ const activityQuery = Type.Object(
 
 const positionsQuery = Type.Object(
   {
-    user: Type.Optional(address({ description: "Wallet to anchor on. At least one of user/condition required." })),
+    user: Type.Optional(
+      address({ description: "Wallet to anchor on. At least one of user/condition required." }),
+    ),
     condition: Type.Optional(
-      Type.String({ description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId." }),
+      Type.String({
+        description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId.",
+      }),
     ),
     event_id: Type.Optional(
       Type.String({ description: "CSV of event IDs (at most 20). User-anchored only." }),
@@ -64,7 +70,9 @@ const positionsQuery = Type.Object(
     cursor: Type.Optional(Type.String({ description: "Opaque pagination cursor from next_cursor" })),
     title: Type.Optional(Type.String({ description: "Case-insensitive market-title substring filter" })),
     filter_type: Type.Optional(enumU(["CASH", "TOKENS"], { default: "TOKENS" })),
-    filter_amount: Type.Optional(Type.Number({ minimum: 0, description: "Filter floor; TOKENS = min shares" })),
+    filter_amount: Type.Optional(
+      Type.Number({ minimum: 0, description: "Filter floor; TOKENS = min shares" }),
+    ),
     include_archived: Type.Optional(Type.Boolean({ default: false })),
     sort_by: Type.Optional(
       enumU(
@@ -73,8 +81,12 @@ const positionsQuery = Type.Object(
       ),
     ),
     sort_direction: Type.Optional(enumU(["ASC", "DESC"], { default: "DESC" })),
-    start: Type.Optional(Type.Integer({ minimum: 0, description: "Inclusive lower bound on last_event_at" })),
-    end: Type.Optional(Type.Integer({ minimum: 0, description: "Inclusive upper bound on last_event_at" })),
+    start: Type.Optional(
+      Type.Integer({ minimum: 0, description: "Inclusive lower bound on last_event_at" }),
+    ),
+    end: Type.Optional(
+      Type.Integer({ minimum: 0, description: "Inclusive upper bound on last_event_at" }),
+    ),
   },
   objOpts,
 );
@@ -88,7 +100,9 @@ const tradesQuery = Type.Object(
     filter_type: Type.Optional(enumU(["CASH", "TOKENS"], { default: "TOKENS" })),
     filter_amount: Type.Optional(Type.Number({ minimum: 0, description: "Minimum trade size" })),
     condition: Type.Optional(
-      Type.String({ description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId." }),
+      Type.String({
+        description: "CSV of condition IDs (at most 20). Aliases: condition_id, conditionId.",
+      }),
     ),
     event_id: Type.Optional(Type.String({ description: "CSV of event IDs (at most 20)." })),
     side: Type.Optional(enumU(["BUY", "SELL"])),
@@ -137,6 +151,252 @@ const snapshotResponse = Type.Object({
   valuationTime: Type.String(),
 });
 
+// ---------------------------------------------------------------------------
+// Response schemas mirror https://data-api.polymarket.com/v2/openapi.json
+// (documentation only — proxy sends raw Buffer and bypasses serialization).
+// ---------------------------------------------------------------------------
+
+const nullableNumber = Type.Union([Type.Number(), Type.Null()]);
+const nullableInteger = Type.Union([Type.Integer(), Type.Null()]);
+
+const paginationSchema = Type.Object(
+  {
+    limit: Type.Integer({ minimum: 0, description: "Page size this page was served with." }),
+    offset: Type.Integer({
+      minimum: 0,
+      description: "Running item offset for display; cursor drives the seek.",
+    }),
+    has_more: Type.Boolean({ description: "Exact: true iff another page exists." }),
+    next_cursor: Type.Optional(
+      Type.Union([Type.String(), Type.Null()], {
+        description: "Opaque signed cursor for the next page; null on the last page.",
+      }),
+    ),
+  },
+  {
+    description: "Paging envelope: follow next_cursor until null.",
+    additionalProperties: true,
+  },
+);
+
+const positionSchema = Type.Object(
+  {
+    proxy_wallet: Type.String({ description: "Proxy wallet holding the position." }),
+    token_id: Type.String({ description: "Outcome token id." }),
+    condition_id: Type.String({ description: "On-chain condition id." }),
+    current_size: Type.Number({ description: "CURRENT holding in shares (~0 on CLOSED)." }),
+    avg_price: Type.Number({ description: "Weighted-average entry price per share, USDC." }),
+    entry_cost_usdc: Type.Number({ description: "Fee-exclusive entry basis." }),
+    entry_fees_usdc: Type.Number({ description: "Attributed BUY-fee total (disclosure only)." }),
+    total_cost_usdc: Type.Number({ description: "entry_cost_usdc + entry_fees_usdc." }),
+    current_price: Type.Number({ description: "Live mark per share, USDC." }),
+    current_value: Type.Number({ description: "current_size × current_price, USDC." }),
+    total_size: Type.Number({ description: "Lifetime bought shares (WAC denominator)." }),
+    realized_pnl: Type.Number({ description: "Cumulative realized PnL, USDC." }),
+    unrealized_pnl: Type.Number({ description: "current_value - entry_cost_usdc." }),
+    total_pnl: Type.Number({ description: "realized_pnl + unrealized_pnl." }),
+    percent_pnl: Type.Number(),
+    percent_realized_pnl: Type.Number(),
+    status: Type.String({ description: "OPEN, REDEEMABLE, or CLOSED (row actual state)." }),
+    redeemable: Type.Boolean(),
+    mergeable: Type.Boolean(),
+    negative_risk: Type.Boolean(),
+    archived: Type.Boolean(),
+    title: Type.String(),
+    slug: Type.String(),
+    icon: Type.String(),
+    event_id: Type.String(),
+    event_slug: Type.String(),
+    outcome: Type.String(),
+    outcome_index: Type.Integer({ description: "999 means unlabeled." }),
+    opposite_outcome: Type.String(),
+    opposite_token_id: Type.String(),
+    end_date: Type.String({ description: "YYYY-MM-DD; 1970-01-01 when unknown." }),
+    last_event_at: Type.Integer({ description: "Last economics event, epoch seconds." }),
+    first_entry_at: Type.Integer({ description: "First acquisition, epoch seconds." }),
+    name: Type.String(),
+    profile_image: Type.String(),
+    verified: Type.Boolean(),
+  },
+  {
+    description: "One position (/v2/positions); uniform across OPEN/REDEEMABLE/CLOSED arms.",
+    additionalProperties: true,
+  },
+);
+
+const activitySchema = Type.Object(
+  {
+    proxy_wallet: Type.String(),
+    timestamp: Type.Integer({ description: "Block timestamp, epoch seconds." }),
+    condition_id: Type.String(),
+    type: Type.String({ description: "TRADE, SPLIT, MERGE, REDEEM, …" }),
+    size: Type.Number({ description: "Share quantity." }),
+    usdc_size: Type.Number({ description: "Cash value in USDC." }),
+    transaction_hash: Type.String(),
+    price: Type.Number({ description: "Price per share USDC; 0 where N/A." }),
+    token_id: Type.String(),
+    side: Type.String({ description: "BUY or SELL on trade rows; empty otherwise." }),
+    outcome_index: Type.Integer(),
+    title: Type.String(),
+    slug: Type.String(),
+    icon: Type.String(),
+    event_slug: Type.String(),
+    outcome: Type.String(),
+    name: Type.String(),
+    pseudonym: Type.String(),
+    bio: Type.String(),
+    profile_image: Type.String(),
+    profile_image_optimized: Type.String(),
+    is_combo: Type.Optional(Type.Boolean({ description: "Present on V2/V3 combo trade rows." })),
+  },
+  {
+    description: "One activity-feed event (/v2/activity).",
+    additionalProperties: true,
+  },
+);
+
+const tradeSchema = Type.Object(
+  {
+    proxy_wallet: Type.String(),
+    side: Type.String({ description: "BUY or SELL." }),
+    token_id: Type.String(),
+    condition_id: Type.String(),
+    size: Type.Number({ description: "Filled quantity in shares." }),
+    price: Type.Number({ description: "Execution price per share, USDC." }),
+    timestamp: Type.Integer({ description: "Block timestamp, epoch seconds." }),
+    title: Type.String(),
+    slug: Type.String(),
+    icon: Type.String(),
+    event_slug: Type.String(),
+    outcome: Type.String(),
+    outcome_index: Type.Integer(),
+    name: Type.String(),
+    pseudonym: Type.String(),
+    bio: Type.String(),
+    profile_image: Type.String(),
+    profile_image_optimized: Type.String(),
+    transaction_hash: Type.String(),
+  },
+  {
+    description: "A trade (/v2/trades).",
+    additionalProperties: true,
+  },
+);
+
+const holderSchema = Type.Object(
+  {
+    proxy_wallet: Type.String(),
+    bio: Type.String(),
+    token_id: Type.String(),
+    pseudonym: Type.String(),
+    amount: Type.Number({ description: "Holding in shares (net, or per-side gross with include_pnl)." }),
+    display_username_public: Type.Boolean(),
+    outcome_index: Type.Integer(),
+    name: Type.String(),
+    profile_image: Type.String(),
+    profile_image_optimized: Type.String(),
+    verified: Type.Boolean(),
+    avg_price: Type.Optional(nullableNumber),
+    current_price: Type.Optional(nullableNumber),
+    current_value: Type.Optional(nullableNumber),
+    entry_cost_usdc: Type.Optional(nullableNumber),
+    realized_pnl: Type.Optional(nullableNumber),
+    unrealized_pnl: Type.Optional(nullableNumber),
+    total_pnl: Type.Optional(nullableNumber),
+  },
+  {
+    description: "One market holder; PnL fields only when include_pnl=true.",
+    additionalProperties: true,
+  },
+);
+
+const metaHolderSchema = Type.Object(
+  {
+    token_id: Type.String({ description: "Outcome token this group ranks." }),
+    holders: Type.Array(holderSchema, {
+      description: "Top holders of that token, amount descending.",
+    }),
+  },
+  {
+    description: "One outcome token's holder group (/v2/holders).",
+    additionalProperties: true,
+  },
+);
+
+const leaderboardEntrySchema = Type.Object(
+  {
+    rank: Type.Integer({ minimum: 0, description: "Competition rank; ties share, next skips." }),
+    user_id: Type.String({ description: "The ranked wallet." }),
+    pnl: Type.Number({ description: "Window PnL in USDC." }),
+    volume: Type.Number({ description: "Both-sides traded volume in shares (not USD)." }),
+    user_name: Type.String(),
+    profile_image: Type.String(),
+    x_username: Type.String(),
+    verified: Type.Boolean(),
+  },
+  {
+    description: "One /v2/leaderboard board row.",
+    additionalProperties: true,
+  },
+);
+
+const leaderboardUserEntrySchema = Type.Object(
+  {
+    user_id: Type.String(),
+    pnl: Type.Number(),
+    volume: Type.Number(),
+    user_name: Type.String(),
+    profile_image: Type.String(),
+    x_username: Type.String(),
+    verified: Type.Boolean(),
+    rank_pnl: Type.Optional(nullableInteger),
+    rank_volume: Type.Optional(nullableInteger),
+  },
+  {
+    description: "Standing for ?user=; carries both PnL and volume ranks (null = unranked).",
+    additionalProperties: true,
+  },
+);
+
+function pageOf(item: TSchema, description: string) {
+  return Type.Object(
+    {
+      data: Type.Array(item, { description: "The page's rows." }),
+      pagination: paginationSchema,
+    },
+    { description, additionalProperties: true },
+  );
+}
+
+const positionsPageSchema = pageOf(positionSchema, "`{ data, pagination }` for /v2/positions.");
+const activityPageSchema = pageOf(activitySchema, "`{ data, pagination }` for /v2/activity.");
+const tradesPageSchema = pageOf(tradeSchema, "`{ data, pagination }` for /v2/trades.");
+const holdersPageSchema = pageOf(metaHolderSchema, "`{ data, pagination }` for /v2/holders.");
+const leaderboardPageSchema = pageOf(
+  leaderboardEntrySchema,
+  "`{ data, pagination }` for /v2/leaderboard board.",
+);
+
+const leaderboardUserEnvelopeSchema = Type.Object(
+  {
+    data: Type.Union([leaderboardUserEntrySchema, Type.Null()], {
+      description: "One user's standing, or null if unknown.",
+    }),
+  },
+  {
+    description: "`{ data }` envelope when ?user= is given (no pagination).",
+    additionalProperties: true,
+  },
+);
+
+const leaderboardResponseSchema = Type.Union(
+  [leaderboardPageSchema, leaderboardUserEnvelopeSchema],
+  {
+    description:
+      "Board page, or one standing when ?user= is set (oneOf, matching upstream OpenAPI).",
+  },
+);
+
 // equity.csv always has exactly two lines: header + one values row.
 function parseEquityCsv(text: string) {
   const lines = text.trim().split(/\r?\n/);
@@ -155,6 +415,7 @@ interface DataRoute {
   bucket: BucketName;
   summary: string;
   querystring: TSchema;
+  response: TSchema;
 }
 
 const ROUTES: DataRoute[] = [
@@ -164,6 +425,7 @@ const ROUTES: DataRoute[] = [
     bucket: "data:positions",
     summary: "Get positions for a user or market (lifecycle via status)",
     querystring: positionsQuery,
+    response: positionsPageSchema,
   },
   {
     path: "/data/activity",
@@ -171,6 +433,7 @@ const ROUTES: DataRoute[] = [
     bucket: "data:activity",
     summary: "Get user activity",
     querystring: activityQuery,
+    response: activityPageSchema,
   },
   {
     path: "/data/trades",
@@ -178,6 +441,7 @@ const ROUTES: DataRoute[] = [
     bucket: "data:trades",
     summary: "Get trades for a user or markets",
     querystring: tradesQuery,
+    response: tradesPageSchema,
   },
   {
     path: "/data/leaderboard",
@@ -185,6 +449,7 @@ const ROUTES: DataRoute[] = [
     bucket: "data:general",
     summary: "Get trader leaderboard rankings",
     querystring: leaderboardQuery,
+    response: leaderboardResponseSchema,
   },
   {
     path: "/data/holders",
@@ -192,6 +457,7 @@ const ROUTES: DataRoute[] = [
     bucket: "data:general",
     summary: "Get top holders for markets",
     querystring: holdersQuery,
+    response: holdersPageSchema,
   },
 ];
 
@@ -205,6 +471,9 @@ export function registerDataRoutes(app: FastifyInstance): void {
           summary: route.summary,
           description: `Proxy of Data API GET ${route.upstreamPath}.`,
           querystring: route.querystring,
+          response: {
+            200: route.response,
+          },
         },
       },
       (request, reply) =>
