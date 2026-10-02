@@ -142,6 +142,25 @@ const holdersQuery = Type.Object(
   objOpts,
 );
 
+const userPnlQuery = Type.Object(
+  {
+    user: address({ description: "Proxy wallet. Alias: user_address." }),
+    interval: Type.Optional(
+      enumU(["max", "all", "1m", "1w", "1d", "12h", "6h"], {
+        default: "1d",
+        description: "Window; defaults to 1d.",
+      }),
+    ),
+    fidelity: Type.Optional(
+      enumU(["1d", "18h", "12h", "3h", "1h"], {
+        default: "1h",
+        description: "Output grid; defaults to 1h.",
+      }),
+    ),
+  },
+  objOpts,
+);
+
 const snapshotQuery = Type.Object({ user: address() }, objOpts);
 
 const snapshotResponse = Type.Object({
@@ -397,6 +416,69 @@ const leaderboardResponseSchema = Type.Union(
   },
 );
 
+const userPnlPointSchema = Type.Object(
+  {
+    timestamp: Type.Integer({
+      description: "Epoch seconds; amounts below are cumulative through this instant.",
+    }),
+    source_block: Type.Integer({ description: "Chain block the point was observed at." }),
+    realized_market_pnl: Type.Number({ description: "Realized PnL from market positions." }),
+    realized_lp_pnl: Type.Number({ description: "Realized PnL from AMM LP activity." }),
+    realized_combo_pnl: Type.Number({ description: "Realized PnL from combo positions." }),
+    realized_pnl: Type.Number({
+      description: "realized_market_pnl + realized_lp_pnl + realized_combo_pnl.",
+    }),
+    volume: Type.Number({ description: "Cumulative maker-attributed fill shares." }),
+    volume_usdc: Type.Number({ description: "Cumulative maker-attributed fill cash, USDC." }),
+    trade_count: Type.Integer({ minimum: 0 }),
+    unrealized_pnl: Type.Optional(nullableNumber),
+    position_pnl: Type.Optional(nullableNumber),
+    trade_pnl: Type.Optional(nullableNumber),
+    settled_pnl: Type.Optional(nullableNumber),
+    economic_pnl: Type.Optional(nullableNumber),
+    deposits: Type.Optional(nullableNumber),
+    withdrawals: Type.Optional(nullableNumber),
+    cashflow_net: Type.Optional(nullableNumber),
+    fees: Type.Optional(nullableNumber),
+    fees_paid: Type.Optional(nullableNumber),
+    fees_refunded: Type.Optional(nullableNumber),
+    maker_rebate: Type.Optional(nullableNumber),
+    taker_rebate: Type.Optional(nullableNumber),
+    reward_income: Type.Optional(nullableNumber),
+    yield_income: Type.Optional(nullableNumber),
+    referral_income: Type.Optional(nullableNumber),
+    sponsored_income: Type.Optional(nullableNumber),
+    wallet_income: Type.Optional(nullableNumber),
+  },
+  {
+    description: "One dense cumulative v2 chart point in USDC; null means unavailable, never zero.",
+    additionalProperties: true,
+  },
+);
+
+const userPnlResponseSchema = Type.Object(
+  {
+    data: Type.Object(
+      {
+        proxy_wallet: Type.String({ description: "The wallet the series was computed for." }),
+        interval: Type.String({ description: "Window served (max, all, 1m, 1w, 1d, 12h, 6h)." }),
+        fidelity: Type.String({ description: "Grid step (1d, 18h, 12h, 3h, 1h)." }),
+        source_fidelity: Type.String({
+          description: "Historical source grain (often daily even on a finer grid).",
+        }),
+        points: Type.Array(userPnlPointSchema, {
+          description: "Dense cumulative points on the requested grid, oldest first.",
+        }),
+      },
+      { additionalProperties: true, description: "Complete v2 user-PnL response data." },
+    ),
+  },
+  {
+    description: "`{ data }` envelope for /v2/user-pnl (no pagination).",
+    additionalProperties: true,
+  },
+);
+
 // equity.csv always has exactly two lines: header + one values row.
 function parseEquityCsv(text: string) {
   const lines = text.trim().split(/\r?\n/);
@@ -458,6 +540,14 @@ const ROUTES: DataRoute[] = [
     summary: "Get top holders for markets",
     querystring: holdersQuery,
     response: holdersPageSchema,
+  },
+  {
+    path: "/data/user-pnl",
+    upstreamPath: "/v2/user-pnl",
+    bucket: "data:general",
+    summary: "Get a user's PnL series",
+    querystring: userPnlQuery,
+    response: userPnlResponseSchema,
   },
 ];
 

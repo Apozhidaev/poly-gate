@@ -148,7 +148,7 @@ rateLimits:
 | data:trades              | 300 req/10s             | `GET /data/trades`                           |
 | data:positions           | 200 req/10s             | `GET /data/positions`                        |
 | data:activity            | 200 req/10s             | `GET /data/activity`                         |
-| data:general             | 800 req/10s             | `GET /data/leaderboard`, `GET /data/holders`, `GET /data/accounting/snapshot` |
+| data:general             | 800 req/10s             | `GET /data/leaderboard`, `GET /data/holders`, `GET /data/user-pnl`, `GET /data/accounting/snapshot` |
 | pnl:general              | 100 req/10s (запас)     | `GET /pnl/user-pnl`                          |
 
 - Реализуем burst + sustained (Bottleneck `reservoir` + refresh) для торговых бакетов.
@@ -229,6 +229,7 @@ Data API v2 pass-through: параметры и ответ (`{ data, pagination?
 - `GET /data/accounting/snapshot` → `GET data /v1/accounting/snapshot`; шлюз распаковывает ZIP, парсит `equity.csv` и возвращает JSON-объект `{ cashBalance, positionsValue, equity: number, valuationTime: string }`
 - `GET /data/leaderboard` → `GET data /v2/leaderboard`
 - `GET /data/holders` → `GET data /v2/holders`
+- `GET /data/user-pnl` → `GET data /v2/user-pnl` (`user`, `interval`, `fidelity`)
 
 ### User PnL API (публичные, без Bearer) — префикс `/pnl`
 - `GET /pnl/user-pnl` → `GET pnl /user-pnl` (недокументированный; параметры `user_address`, `interval`, `fidelity` — от клиента)

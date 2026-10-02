@@ -108,6 +108,7 @@ Key points:
 | `GET /data/accounting/snapshot` | Data `/v1/accounting/snapshot` (equity as JSON) | – |
 | `GET /data/leaderboard` | Data `/v2/leaderboard` | – |
 | `GET /data/holders` | Data `/v2/holders` | – |
+| `GET /data/user-pnl` | Data `/v2/user-pnl` | – |
 | `GET /pnl/user-pnl` | user-pnl-api `/user-pnl` | – |
 | `GET /system/health` | – (gateway meta) | – |
 | `POST /system/generate-seed` | – (local BIP39 generation) | – |
