@@ -1,14 +1,31 @@
 import {
   OrderSide,
   OrderType,
+  UnexpectedResponseError,
   type SecureClient,
 } from "@polymarket/client";
 import { fetchBalanceAllowance } from "@polymarket/client/actions";
 import { AssetType } from "@polymarket/bindings/clob";
 import { Type } from "@sinclair/typebox";
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import { UpstreamError } from "../lib/errors.js";
 import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
 import { StringEnum } from "../lib/typebox.js";
+
+/** CLOB returns JSON `null` for a missing order; the SDK Zod-parse fails on that. */
+function isMissingOrderResponse(err: unknown): boolean {
+  if (!(err instanceof UnexpectedResponseError)) return false;
+  const issues = (err.cause as { issues?: Array<{ code?: string; received?: unknown; path?: unknown[] }> } | null)
+    ?.issues;
+  if (
+    issues?.some(
+      (i) => i.code === "invalid_type" && i.received === "null" && (i.path?.length ?? 0) === 0,
+    )
+  ) {
+    return true;
+  }
+  return /received null/i.test(err.message);
+}
 
 const USDC_DIGITS = 6;
 
@@ -397,20 +414,37 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
         params: Type.Object({ orderID: Type.String() }),
         response: {
           200: openOrderSchema,
+          404: Type.Object({ error: Type.String() }),
         },
       },
     },
     async (request, reply) => {
       const { client } = requireUser(request);
       const { orderID } = request.params as { orderID: string };
-      const result = await scheduleClobCall(
-        app.gate,
-        () => client.fetchOrder({ orderId: orderID }),
-        {
-          bucket: "clob:order",
-        },
-      );
-      return reply.send(result);
+      try {
+        const result = await scheduleClobCall(
+          app.gate,
+          () => client.fetchOrder({ orderId: orderID }),
+          {
+            bucket: "clob:order",
+          },
+        );
+        if (result == null) {
+          throw new UpstreamError("Order not found", {
+            status: 404,
+            body: { error: "Order not found" },
+          });
+        }
+        return reply.send(result);
+      } catch (err) {
+        if (isMissingOrderResponse(err)) {
+          throw new UpstreamError("Order not found", {
+            status: 404,
+            body: { error: "Order not found" },
+          });
+        }
+        throw err;
+      }
     },
   );
 
