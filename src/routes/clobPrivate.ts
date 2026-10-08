@@ -11,6 +11,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { UpstreamError } from "../lib/errors.js";
 import { scheduleClobCall } from "../lib/polymarket/clobCall.js";
 import { StringEnum } from "../lib/typebox.js";
+import { parseTrades } from "../lib/userTrade.js";
 
 /** CLOB returns JSON `null` for a missing order; the SDK Zod-parse fails on that. */
 function isMissingOrderResponse(err: unknown): boolean {
@@ -168,94 +169,42 @@ const openOrderSchema = Type.Object(
   },
 );
 
-const makerOrderSchema = Type.Object({
-  outcome: Type.String(),
-  owner: Type.String(),
-  price: Type.String(),
-  side: Type.String(),
-  assetId: Type.String(),
-  tokenId: Type.String({ description: "Deprecated alias of assetId" }),
-  feeRateBps: Type.Union([Type.String(), Type.Null()]),
-  makerAddress: Type.String(),
-  matchedAmount: Type.String(),
+const userTradeSchema = Type.Object({
+  tradeId: Type.String(),
   orderId: Type.String(),
-});
-
-const clobTradeSchema = Type.Object({
-  id: Type.String(),
-  outcome: Type.String(),
-  owner: Type.String(),
-  price: Type.String(),
-  side: Type.String(),
-  size: Type.String(),
-  status: Type.String({ description: "e.g. TRADE_STATUS_CONFIRMED" }),
   conditionId: Type.String(),
   assetId: Type.String(),
-  tokenId: Type.String({ description: "Deprecated alias of assetId" }),
-  bucketIndex: Type.Number(),
-  feeRateBps: Type.String(),
-  updatedAt: Type.String({ description: "ISO-8601 timestamp" }),
-  makerAddress: Type.String(),
-  makerOrders: Type.Array(makerOrderSchema),
-  matchedAt: Type.String({ description: "ISO-8601 timestamp" }),
-  takerOrderId: Type.String(),
-  traderSide: StringEnum(["TAKER", "MAKER"]),
-  transactionHash: Type.String(),
+  avgPrice: Type.Number(),
+  matchedAmount: Type.Number(),
+  side: StringEnum(["BUY", "SELL"]),
+  matchTime: Type.Number({ description: "Match time as epoch milliseconds" }),
 });
 
 const userTradesResponseSchema = Type.Object(
   {
-    items: Type.Array(clobTradeSchema),
+    items: Type.Array(userTradeSchema),
     has_more: Type.Boolean(),
     next_cursor: Type.Optional(Type.String()),
-    total_count: Type.Optional(Type.Number()),
+    total_count: Type.Optional(
+      Type.Number({ description: "Upstream CLOB trade-row count, not mapped length" }),
+    ),
   },
   {
-    description: "First page of account trades",
+    description: "First page of account trades, mapped to UserTrade rows",
     examples: [
       {
         items: [
           {
-            id: "d83cf884-38cd-460c-97f7-4a1a8c6b971f",
-            outcome: "Yes",
-            owner: "0623855e-28bf-b955-b8cd-a77427274647",
-            price: "0.83",
-            side: "BUY",
-            size: "13.09",
-            status: "TRADE_STATUS_CONFIRMED",
+            tradeId: "d83cf884-38cd-460c-97f7-4a1a8c6b971f",
+            orderId: "0x9d21164cef3cd6fddb9bd3e3d93f4f79ad6892545625773c87e8de334e84aad7",
             conditionId:
               "0xfdfdcbcf9c268407faefe9f0b29743f2aa6e701c5873bba02d87b206b8f9ae2e",
             assetId:
               "13746535053591566747844631539975609003059990422143780703172111994120738569717",
-            tokenId:
-              "13746535053591566747844631539975609003059990422143780703172111994120738569717",
-            bucketIndex: 0,
-            feeRateBps: "0",
-            updatedAt: "2026-09-21T23:50:53.000Z",
-            makerAddress: "0x5bB6De445cDD88d912bA3905fd072AffDC519d57",
-            makerOrders: [
-              {
-                outcome: "Yes",
-                owner: "02d10472-a028-a03c-6b71-03a8cd72443e",
-                price: "0.83",
-                side: "SELL",
-                assetId:
-                  "13746535053591566747844631539975609003059990422143780703172111994120738569717",
-                tokenId:
-                  "13746535053591566747844631539975609003059990422143780703172111994120738569717",
-                feeRateBps: null,
-                makerAddress: "0x460BdF120D096CB6AceF687CC984770288079894",
-                matchedAmount: "13.09",
-                orderId:
-                  "0xf4473df55068d78c32606a785adf602e5362e86dad39f22521a51ee4449ef1d0",
-              },
-            ],
-            matchedAt: "2026-09-21T23:50:45.000Z",
-            takerOrderId:
-              "0x9d21164cef3cd6fddb9bd3e3d93f4f79ad6892545625773c87e8de334e84aad7",
-            traderSide: "TAKER",
-            transactionHash:
-              "0xab068ce9f46d0736343e04077564aac8143ba0785a17bdda0f0d34548a9a5215",
+            avgPrice: 0.83,
+            matchedAmount: 13.09,
+            side: "BUY",
+            matchTime: 1726962645000,
           },
         ],
         has_more: false,
@@ -518,8 +467,11 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
               cursor: q.next_cursor,
             })
             .firstPage();
+          const apiKey = client.credentials.key;
           return {
-            items: page.items,
+            items: page.items.flatMap((trade) =>
+              parseTrades(trade as unknown as Record<string, unknown>, apiKey),
+            ),
             next_cursor: page.nextCursor,
             has_more: page.hasMore,
             total_count: page.totalCount,
