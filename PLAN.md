@@ -213,6 +213,7 @@ http:
 
 ### CLOB торговля (приватные, L2 + подпись, **требуют Bearer**) — префикс `/clob`
 - `POST /clob/order` → `POST clob /order` — тело высокоуровневое (`tokenID, price, size, side, orderType` + **`tickSize` и `negRisk` обязательны от клиента**), сборка+подпись на стороне шлюза. **Без retry** (риск дубликата ордера)
+- `POST /clob/merge` → `SecureClient.mergePositions` — тело `{ conditionId }` или `{ legs }` + optional `amount` (`max` \| shares) / `metadata`; ждёт settlement, возвращает `{ transactionHash, transactionId }`. **Без retry**
 - `DELETE /clob/order` → `DELETE clob /order` (тело `{ orderID }`)
 - `GET /clob/order/{orderID}` → `GET clob /data/order/{orderID}`
 - `GET /clob/user-trades` → `GET clob /data/trades` (`maker_address` и прочие параметры — от клиента, как у Polymarket)

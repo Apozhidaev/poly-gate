@@ -62,6 +62,55 @@ interface OrderBody {
   expiration?: number;
 }
 
+const mergeBodySchema = Type.Object({
+  conditionId: Type.Optional(
+    Type.String({ description: "Market condition ID (mutually exclusive with legs)" }),
+  ),
+  legs: Type.Optional(
+    Type.Array(Type.String(), {
+      minItems: 1,
+      description: "Combo Protocol V2 position IDs (mutually exclusive with conditionId)",
+    }),
+  ),
+  amount: Type.Optional(
+    Type.Union([Type.Literal("max"), Type.Number({ exclusiveMinimum: 0 })], {
+      default: "max",
+      description: '`max` or human share count (converted to base units × 10^6)',
+    }),
+  ),
+  metadata: Type.Optional(Type.String({ description: "Optional transaction metadata" })),
+});
+
+interface MergeBody {
+  conditionId?: string;
+  legs?: string[];
+  amount?: "max" | number;
+  metadata?: string;
+}
+
+const mergeResponseSchema = Type.Object(
+  {
+    transactionHash: Type.String({ description: "Settled transaction hash" }),
+    transactionId: Type.Union([Type.String(), Type.Null()], {
+      description: "Polymarket API transaction id when submitted via API; else null",
+    }),
+  },
+  {
+    description: "Settled mergePositions outcome",
+    examples: [
+      {
+        transactionHash: "0xabc...",
+        transactionId: "tx_123",
+      },
+    ],
+  },
+);
+
+function toMergeAmount(amount: "max" | number | undefined): bigint | "max" {
+  if (amount == null || amount === "max") return "max";
+  return BigInt(Math.round(amount * 10 ** USDC_DIGITS));
+}
+
 const acceptedOrderResponseSchema = Type.Object(
   {
     ok: Type.Literal(true),
@@ -295,6 +344,61 @@ export function registerClobPrivateRoutes(app: FastifyInstance): void {
       );
 
       return reply.send(result);
+    },
+  );
+
+  app.post(
+    "/clob/merge",
+    {
+      ...auth,
+      schema: {
+        tags: ["clob"],
+        summary: "Merge complementary positions into collateral",
+        description:
+          "Calls SecureClient.mergePositions and waits for on-chain settlement. Provide exactly one of conditionId (market) or legs (combo). NOT retried.",
+        security: [{ bearerAuth: [] }],
+        body: mergeBodySchema,
+        response: {
+          200: mergeResponseSchema,
+          400: Type.Object({ error: Type.String() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { client } = requireUser(request);
+      const body = request.body as MergeBody;
+      const hasCondition = body.conditionId != null && body.conditionId !== "";
+      const hasLegs = Array.isArray(body.legs) && body.legs.length > 0;
+      if (hasCondition === hasLegs) {
+        throw Object.assign(
+          new Error("Provide exactly one of `conditionId` or `legs`"),
+          { statusCode: 400 },
+        );
+      }
+
+      const amount = toMergeAmount(body.amount);
+      const metadata = body.metadata;
+      const handle = await scheduleClobCall(
+        app.gate,
+        () =>
+          hasCondition
+            ? client.mergePositions({
+                conditionId: body.conditionId!,
+                amount,
+                ...(metadata != null ? { metadata } : {}),
+              })
+            : client.mergePositions({
+                legs: body.legs!,
+                amount,
+                ...(metadata != null ? { metadata } : {}),
+              }),
+        { bucket: "clob:order", retryDisabled: true },
+      );
+      const outcome = await handle.wait();
+      return reply.send({
+        transactionHash: outcome.transactionHash,
+        transactionId: outcome.transactionId,
+      });
     },
   );
 

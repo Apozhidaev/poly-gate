@@ -97,6 +97,7 @@ Key points:
 | `GET /clob/markets/{condition_id}` | CLOB `/markets/{condition_id}` | – |
 | `POST /clob/order-books` | CLOB `/books` (direct, not SDK) | – |
 | `POST /clob/order` | CLOB `/order` (signed, no retry) | Bearer |
+| `POST /clob/merge` | SecureClient `mergePositions` (waits for settlement, no retry) | Bearer |
 | `DELETE /clob/order` | CLOB `/order` | Bearer |
 | `GET /clob/order/{orderID}` | CLOB `/data/order/{orderID}` | Bearer |
 | `GET /clob/user-trades` | CLOB `/data/trades` | Bearer |
